@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name ="viewport" content ="initial-scale=1, maximum-scale=3, minimum-scale=1, user-scalable=no">
+  <title></title>
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login">
+      <div class="auth-login__title">
+        <div class="content">订阅设备</div>
+      </div>
+      <div class="form-item mb20">
+        <div class="input-warp">
+          <input type="text" class="input-content" name="qcode"  id="qcode" placeholder="二维码信息（需要base64解码）" >
+            <!-- <div class="error" >11111111111111111111111111111111111111111111111</div> -->
+        </div>
+      </div>
+      <div class="submit-btn-wrap">
+        <button
+          id="submit-button"
+          onclick="onSumbit()"
+          class="submit">
+          确定
+        </button>
+      </div>
+
+      <div class="submit-btn-wrap">
+        <a
+          style="display: block;"
+          href="index.html"
+          class="submit">
+          进入控制页面
+        </a>
+      </div>
+
+    </div>
+  </div>
+</body>
+<script type="text/javascript" src="static/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" src="js/ajax.js"></script>
+<script type="text/javascript">
+  function onSumbit() {
+    // qcode需base64解码
+    var qcode = $('#qcode')[0].value
+
+    if (!qcode) {
+      alert('二维码信息不能为空')
+      return
+    }
+    var params = {
+      qrcode: qcode
+    }
+    qrcode_subscribe(window.localStorage.getItem('userId'), JSON.stringify(params), function(data){
+      console.log(data)
+      window.location.href = 'index.html'
+
+    }, function(err){
+      console.log(err.responseText)
+    })
+  }
+</script>
+</html>

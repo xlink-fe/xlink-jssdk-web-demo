@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name ="viewport" content ="initial-scale=1, maximum-scale=3, minimum-scale=1, user-scalable=no">
+  <title></title>
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login">
+      <div class="auth-login__title">
+        <h2 class="content">登录</h2>
+      </div>
+      <div class="form-item mb20">
+        <div class="input-warp">
+          <input type="text" class="input-content" name="corpid"  id="corpid" placeholder="企业ID" >
+            <!-- <div class="error" >11111111111111111111111111111111111111111111111</div> -->
+        </div>
+        <div class="input-warp">
+          <input type="text" class="input-content" name="account" id="account" placeholder="用户名" >
+            <!-- <div class="error" >11111111111111111111111111111111111111111111111</div> -->
+        </div>
+        <div class="input-warp">
+          <input  class="input-content"  name="password" type="password" id="password" placeholder="密码" >
+          <!-- <div class="error" >11111111111111111111111111111111111111111111111</div> -->
+        </div>
+      </div>
+      <div class="submit-btn-wrap">
+        <button
+          id="submit-button"
+          onclick="onSumbit()"
+          class="submit">
+          登录
+        </button>
+      </div>
+
+      <div>
+        <a href="register.html" title="">前往注册</a>
+      </div>
+
+    </div>
+  </div>
+</body>
+<script type="text/javascript" src="static/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" src="js/ajax.js"></script>
+<script type="text/javascript">
+  function onSumbit() {
+    var email = $('#account')[0].value
+    var password = $('#password')[0].value
+    var corp_id = $('#corpid')[0].value
+    if (!email || !password || !corp_id) {
+      alert('用户名，密码，企业id不能为空')
+      return
+    }
+    var params = {
+      email: email,
+      corp_id: corp_id,
+      password: password
+    }
+    login(JSON.stringify(params), function(data){
+      console.log(data.access_token)
+      window.localStorage.setItem('accessToken', data.access_token)
+      window.localStorage.setItem('userId', data.user_id)
+      window.localStorage.setItem('authorize', data.authorize)
+      window.location.href = 'qrcode.html'
+    }, function(err){
+      console.log(err.responseText)
+    })
+  }
+</script>
+</html>
