@@ -16,7 +16,6 @@
       <div class="form-item mb20">
         <div class="input-warp">
           <input type="text" class="input-content" name="qcode"  id="qcode" placeholder="二维码信息（需要base64解码）" >
-            <!-- <div class="error" >11111111111111111111111111111111111111111111111</div> -->
         </div>
       </div>
       <div class="submit-btn-wrap">
@@ -44,7 +43,13 @@
 <script type="text/javascript" src="js/ajax.js"></script>
 <script type="text/javascript">
   function onSumbit() {
+    // 订阅之前设置一个布尔类型数据端点Id为$1002的数据端点（开关开启时可进行二维码订阅）
+    // 然后设置该端点值为true（设备模拟器或者设备）
+
     // qcode需base64解码
+    // 例如二维码接口返回：WFFSOlQ6RDtWOjE7QVVUSDpSO1BJRDoxNjBmYTZiM2I2OWIwM2U5MTYwZmE2YjNiNjliNmEwMTtRSzo1OWRiNGRlOGM1NzQwZTBhZTIzOTRjNGU7U046Ozs=
+    
+    // base64解码为： XQR:T:D;V:1;AUTH:R;PID:160fa6b3b69b03e9160fa6b3b69b6a01;QK:59db4de8c5740e0ae2394c4e;SN:;;
     var qcode = $('#qcode')[0].value
 
     if (!qcode) {
