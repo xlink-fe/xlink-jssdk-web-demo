@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>xlink-jssdk-web-jq-demo</title>
+    <title>xlink-jssdk-web-demo</title>
     <meta name="viewport" content="initial-scale=1, maximum-scale=3, minimum-scale=1, user-scalable=no">
     <link rel="stylesheet" href="static/bootstrap.css">
     <style type="text/css">
@@ -19,18 +19,19 @@
         width: 100px;
         display: inline-block;
     }
+
     .mt20 {
-    	margin-top: 20px;
+        margin-top: 20px;
     }
     </style>
 </head>
 
 <body style="overflow: auto;padding: 10px;box-sizing: border-box;">
+    <!-- 设备列表 -->
     <div id="device" class="form-horizontal"></div>
-
     <!-- 索引端点 -->
     <h4>发送数据端点</h4>
-    <div class="form-horizontal" >
+    <div class="form-horizontal">
         <div class="form-group">
             <label for="index" class="col-sm-2 control-label">索引</label>
             <div class="col-sm-10">
@@ -65,12 +66,13 @@
             </div>
         </div>
     </div>
-    
     <!--透传，仅支持websocket的-->
     <div id="pipecontainer">
     </div>
-    
-  
+    <!-- 获取设备日志，仅支持mqtt -->
+    <div id="logs">
+        
+    </div>
     <!-- 数据端点 -->
     <div id="dataPoint" style="margin-top: 20px;">
         <table style="width:100%" border="1" cellspacing="0" class="table table-bordered">
@@ -82,11 +84,11 @@
             </thead>
         </table>
     </div>
-
 </body>
 <script type="text/javascript" src="static/jquery-3.2.1.min.js"></script>
 <script type="text/javascript" src="js/ajax.js"></script>
 <script type="text/javascript" src="static/xsdk.js"></script>
+<script type="text/javascript" src="static/bootstrap.min.js"></script>
 <script>
 var ws = null
 var devices = [] // 设备列表
@@ -114,11 +116,9 @@ fetchDeviceList(window.localStorage.getItem('userId'), function(data) {
     })
     str += '</select></div></div>'
     $('#device').html(str)
-    console.log($('#deviceList')[0].value)
 
     $('#deviceList')[0].onchange = function() {
         // 如果所有设备的协议相同，不用销毁sdk,直接操作devicesList数组
-        console.log('change')
         destorySdk()
         initSdk()
     }
@@ -128,38 +128,58 @@ fetchDeviceList(window.localStorage.getItem('userId'), function(data) {
 
 
 
-
 function initSdk() {
     // 获取设备的列表
-    console.log(devices)
     if (!devices.length) return
 
     getVdevice(getProductId($('#deviceList')[0].value, devices), $('#deviceList')[0].value, function(data) {
-    	if (data.conn_prot === 1) {
-    		var html = `<h4>发送透传</h4>
-		    <div class="form-horizontal" >
-		        <div class="form-group">
-		            <label for="index" class="col-sm-2 control-label">透传</label>
-		            <div class="col-sm-10">
-		                <input type="text" class="form-control" id="pipe" placeholder="以(255, 0, 2, 3, 5, 254)格式发送(0-255)">
-		            </div>
-		        </div>
-		
-		        <div class="form-group">
-		            <div class="col-sm-offset-2 col-sm-10">
-		                <button class="btn btn-danger" onclick="sendpipe()">发送数据端点</button>
-		            </div>
-		        </div>
-		    </div>`
-    		$('#pipecontainer').html(html)
-    	} else {
-    		$('#pipecontainer').html('')
-    	}
-    	
+        if (data.conn_prot === 1) {
+            var html = `<h4>发送透传</h4>
+            <div class="form-horizontal" >
+                <div class="form-group">
+                    <label for="index" class="col-sm-2 control-label">透传</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" id="pipe" placeholder="以(255, 0, 2, 3, 5, 254)格式发送(0-255)">
+                    </div>
+                </div>
+        
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <button class="btn btn-danger" onclick="sendpipe()">发送透传</button>
+                    </div>
+                </div>
+            </div>`
+            $('#pipecontainer').html(html)
+            $('#logs').html('')
+        } else {
+            var logs = `<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#myModal" >
+                            显示设备日志
+                        </button>
+                        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                        <h4 class="modal-title" id="myModalLabel">设备日志</h4>
+                                    </div>
+                                    <div class="modal-body">
+                                        <ul class="list-group" id="logsList">
+                        
+                                        </ul>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`
+            $('#pipecontainer').html('')
+            $('#logs').html(logs)
+        }
+
         // 如果确定所有设备用同一种协议则只需new一个websocket或者mqtt实例，不需要调此接口，另外可以通过调此接口判断设备是否在线，不在线设备上报或者发送数据端点没发应
         conn_prot = data.conn_prot
-        console.log(conn_prot)
-//         if (conn_prot === 1) return
+
         if (data.conn_prot === 1) {
             ws = new XSDK('websocket', {
                 host: 'http://cm2.xlink.cn:23777',
@@ -184,13 +204,13 @@ function initSdk() {
 
         ws.on('devicesready', function(devicesArray) {
             devicesList = devicesArray
-            console.log(devicesArray)
+
             socketObj = getDeviceSocket($('#deviceList')[0].value)
             if (!socketObj) {
                 alert('没有找到对应的设备的类')
                 return
             }
-            console.log(socketObj)
+
             // devicesArray 表示设备对象数组，这里是拿所有设备的端点值和端点变化的事件,on事件只写一次，事件返回就会触发，emit事件可以写多次
             socketObj.emit('probe', function(data) {
                 // 处理数据端点返回，获取设备的数据端点
@@ -200,23 +220,28 @@ function initSdk() {
                     return a.index - b.index
                 })
 
-                console.log(dataPoint)
                 updateData(dataPoint)
 
             })
+
+            // 获取设备日志
+            if (conn_prot === 2) {
+                fetchLogs()
+            }
+            
+
             socketObj.on('data', function(data) {
+                console.log(data)
                 if (data.type === 'datapoint') {
                     // 数据端点
-                    console.log(data)
                     deviceProb(data.data)
                 }
                 // 仅支持websocket,透传
-		        if (data.type === 'pipe_sync') {
-		          console.log(data)
-		          if (data.data && data.data.length){
-		          	$('#pipe')[0].value = data.data.join(',')
-		          }
-		        }
+                if (data.type === 'pipe_sync') {
+                    if (data.data && data.data.length) {
+                        $('#pipe')[0].value = data.data.join(',')
+                    }
+                }
             })
         })
 
@@ -224,7 +249,6 @@ function initSdk() {
             console.log(err)
             if (conn_prot === 2) {
                 ws = null
-                // devices = []
                 devicesList = []
             }
 
@@ -252,15 +276,19 @@ function change() {
     }
 
     // 布尔类型转换
-    // if (Number(datatype) === 1) {
-    //     dataval = dataval === 'true' ? true : false
-    // }
+    if (dataval === 'true' || dataval === 'false') {  
+        dataval = dataval === 'true' ? true : false
+    }
+
+
+
     var dataArr = [{
         index: dataindex * 1, // 数据端点索引
         value: dataval, // 数据端点值
         type: datatype * 1 // 这个要看文档上的数据端点的列表枚举，string为6
     }]
     console.log(dataArr)
+
     socketObj.emit('senddata', {
         type: 'datapoint',
         data: dataArr
@@ -280,30 +308,31 @@ function change() {
 }
 
 // 发送透传数据
-function sendpipe () {
-	if (!$('#pipe')[0].value) {
-		alert('透传值不能为空')
-		return
-	}
-	
-    
+function sendpipe() {
+    if (!$('#pipe')[0].value) {
+        alert('透传值不能为空')
+        return
+    }
+
+
     if (!socketObj) {
-    	alert('找不到当前的sdk对象')
-    	return
+        alert('找不到当前的sdk对象')
+        return
     }
     let pipeSync = $('#pipe')[0].value.split(',')
-    console.log(pipeSync)
+
     // 透传FF 00 02 03 05 FE
     socketObj.emit('senddata', {
-      type: 'pipe',
-      data: pipeSync
+        type: 'pipe',
+        data: pipeSync
     }, (res) => {
-      if (res.status === 0) {
-        // 发送成功
-        alert('发送成功')
-      }
+        if (res.status === 0) {
+            // 发送成功
+            alert('发送成功')
+        }
     })
 }
+
 
 // 处理设备上报的数据端点
 function deviceProb(data) {
@@ -355,12 +384,16 @@ function fetchLogs() {
     socketObj.emit('log', function(res) {
         console.log(res)
         if (res.data) {
-            // var obj = JSON.parse(JSON.stringfy(res.data))
-            // obj.time = new Date(obj.timestamp).toString()
-            // logs.push(obj)
+            var obj = JSON.parse(JSON.stringfy(res.data))
+            obj.time = new Date(obj.timestamp).toString()
+            var str = '<li class="list-group-item"><div>'+obj.time+'</div><div>'+obj.msg+'</div></li>'
+            console.log(str)
+            $('#logsList').append(str)
         }
     })
 }
+
+
 
 
 // 获取每个设备对应的产品id
@@ -390,7 +423,6 @@ function getDeviceSocket(deviceId) {
 // 销毁sdk实例
 function destorySdk() {
     if (ws) {
-        console.log('destory')
         ws.emit('destory')
     }
 
