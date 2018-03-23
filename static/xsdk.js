@@ -673,6 +673,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 
 	function _setRecv(data) {
+		console.log(data)
 	  if (!data.is_resp) {
 	    return;
 	  }
