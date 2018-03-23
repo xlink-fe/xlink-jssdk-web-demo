@@ -27,6 +27,8 @@
 </head>
 
 <body style="overflow: auto;padding: 10px;box-sizing: border-box;">
+    <a href="verson/mqtt.html">mqtt</a>
+    <a href="verson/websocket.html">websocket</a>
     <!-- 设备列表 -->
     <div id="device" class="form-horizontal"></div>
     <!-- 索引端点 -->
@@ -381,7 +383,7 @@ function fetchLogs() {
         alert('sdk还没有初始化')
         return
     }
-    socketObj.emit('log', function(res) {
+    socketObj.on('log', function(res) {
         console.log(res)
         if (res.data) {
             var obj = JSON.parse(JSON.stringfy(res.data))

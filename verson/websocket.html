@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>xlink-jssdk-wechat-demo</title>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=3, minimum-scale=1, user-scalable=no">
+    <link rel="stylesheet" href="../static/bootstrap.css">
+    <style type="text/css">
+    html,
+    body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .name {
+        width: 100px;
+        display: inline-block;
+    }
+    </style>
+</head>
+
+<body style="overflow: auto;padding: 10px;box-sizing: border-box;">
+    
+    <div class="container-fluid">
+      <div class="row" id="row">
+        <!-- 数据端点 -->
+        <!-- <div class="col-md-4">
+          <h4>1111111111111111</h4>
+          <h5>在线</h5>
+          <div>
+            <table style="width:100%" border="1" cellspacing="0" class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>索引</th>
+                        <th>端点</th>
+                    </tr>
+                </thead>
+            </table>
+          </div> 
+        </div> -->
+      </div>
+    </div>
+
+    <!-- 发送数据端点 -->
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-6">
+            <!-- 索引端点 -->
+            <h4 style="text-align:center;">发送数据端点</h4>
+            <div class="form-horizontal">
+                <div class="form-group">
+                    <label for="index" class="col-sm-4 control-label">设备</label>
+                    <div class="col-sm-6" id="checkList">
+                        <!-- <div class="checkbox">
+                            <label>
+                                <input type="checkbox"   value="2">设备2
+                            </label>
+                        </div> -->
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="index" class="col-sm-4 control-label">索引</label>
+                    <div class="col-sm-6">
+                        <input type="text" class="form-control" id="index" placeholder="请输入数据端点索引">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="dataval" class="col-sm-4 control-label">端点值</label>
+                    <div class="col-sm-6">
+                        <input type="text" class="form-control" id="dataval" placeholder="请输入数据端点值">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-4 col-sm-6">
+                        <button class="btn btn-danger" onclick="change()">发送数据端点</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <h4 style="text-align:center;">发送透传</h4>
+            <div class="form-horizontal" >
+                <div class="form-group">
+                    <label for="index" class="col-sm-2 control-label">透传</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" id="pipe" placeholder="以(255, 0, 2, 3, 5, 254)格式发送(0-255)">
+                    </div>
+                </div>
+        
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <button class="btn btn-danger" onclick="sendpipe()">发送透传</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>  
+</body>
+<script type="text/javascript" src="../static/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" src="../static/xsdk.js"></script>
+<script type="text/javascript" src="../static/bootstrap.min.js"></script>
+<script type="text/javascript" src="../js/ajax.js"></script>
+<script>
+
+var ws = null
+var devices = [] // 原始的数据端点
+var devicemunn = {} // 原始设备的枚举
+var devicesList = [] // 初始化后的sdk设备的类，可以获取和操作数据端点
+
+var dataPoint = {} // 数据端点的值
+var userid = ''
+var authorize = ''
+
+
+// 1.获取设备列表
+fetchDeviceList(window.localStorage.getItem('userId'), function(data) {
+    devices = data.map(item => {
+        return {
+            device_id: item.id.toString(),
+            device_name: item.name,
+            device_mac: item.mac,
+            device_pid: item.product_id
+        }
+    })
+    console.log(devices)  
+    fetchDeviceStatus()
+})
+
+// 2.获取设备的在线以及端口状态，筛选适合mqtt协议的设备
+function fetchDeviceStatus () {
+   // 获取设备的列表
+   if (!devices.length) return
+   let promise = devices.map(function(item){
+    return fetchVdevicePromise(item.device_pid, item.device_id)
+   })
+    // 获取当前设备的端口号以及在线状态
+   Promise.all(promise).then(function(result){
+        devices.forEach(function(item, index) {
+            item.online = result[index].online
+            item.conn_prot = result[index].conn_prot
+        })
+
+        // 筛选出websocket协议的设备
+        devices = devices.filter(function(item){
+            return item.conn_prot == 1
+        })
+        console.log(devices)
+
+        devices.forEach(function(item){
+            devicemunn[item.device_id] = item
+        })
+        if (!devices.length) return
+        renderUi()
+   })
+}
+
+// 3.渲染ui
+function renderUi () {
+    var str = ''
+    var logStr = ''
+    var deviceListStr = ''
+    var alertStr = ''
+    devices.forEach(function(item){
+        deviceListStr += `<div class="checkbox">
+            <label>
+                <input type="checkbox"   value="${item.device_id}">${item.device_mac}
+            </label>
+        </div>`
+
+        str += `<div class="col-md-4">
+          <h4>设备：${item.device_mac}</h4>
+          <h5 id="device${item.device_id}">在线状态：${item.online ? '<span style="color:green">在线</span>' : '<span style="color:red">离线</span>'}</h5>
+          <div id="devicetable${item.device_id}">
+            <table style="width:100%" border="1" cellspacing="0" class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>索引</th>
+                        <th>端点</th>
+                    </tr>
+                </thead>
+            </table>
+          </div>
+        </div>`
+    })
+    $('#row').html(str)
+    $('#checkList').html(deviceListStr)
+    initWebSocketConnect()
+}
+
+// 4.初始化websocket
+function initWebSocketConnect() {
+    // 获取设备的列表
+    if (!devices.length) return
+    ws = new XSDK('websocket', {
+        host: 'http://cm2.xlink.cn:23777',
+        userid: window.localStorage.getItem('userId'),
+        authorize: window.localStorage.getItem('authorize'),
+        dp_version: 2
+    })
+
+    ws.on('ready', function() {
+        console.log('成功连上了')
+        ws && ws.emit('adddevices', devices) //_devices 表示用户绑定设备列表
+    })
+
+    ws.on('devicesready', function(devicesArray) {
+        devicesList = devicesArray
+        console.log(devicesList)
+
+        // devicesArray 表示设备对象数组，这里是拿所有设备的端点值和端点变化的事件,on事件只写一次，事件返回就会触发，emit事件可以写多次
+        devicesList.forEach(function(item){
+            // 1.主动获取数据端点，处理数据端点返回，获取设备的数据端点
+            item.emit('probe', function(data) {
+                console.log(data)
+                if (!data.data || !data.data.length) {
+                    dataPoint[item.id] = []
+                    return
+                }
+                var data_point = data.data.sort(function(a, b) {
+                    return a.index - b.index
+                })
+                dataPoint[data.deviceId] = data_point
+
+                updateData(data.deviceId, data_point)
+            })
+
+            // 2.监听设备上报数据端点的变化
+            item.on('data', function(data) {
+                console.log(data)
+                if (data.type === 'datapoint') {
+                    // 数据端点
+                    deviceProb(data.deviceId, data.data)
+                }
+
+                // 仅支持websocket,透传
+                if (data.type === 'pipe_sync') {
+                    if (data.data && data.data.length) {
+                        $('#pipe')[0].value = data.data.join(',')
+                    }
+                }
+            })
+
+            // 3.监听设备告警
+            item.on('alert', function(data){
+                console.log(data)
+            })
+
+            // 4.监听设备上下线
+            item.on('statuschange', function(status){
+                // 设备状态改变，上线(1)或者下线(0)
+                console.log(status)
+                upOnlineStatus(item.pid, item.id)
+            })
+            
+        })
+    })
+
+    ws.on('error', function(err) {
+        console.log(err)
+    })
+}
+
+
+
+// 改变数据端点的状态
+function change() {
+    // 发送端点数据，必须实例化sdk之后才能触发事件
+    if (!devicesList.length) {
+        alert('sdk还没有初始化')
+        return
+    }
+
+    // 获取已经选中的设备
+    var ids = []
+    $(":checkbox").each(function(){ 
+        if ($(this).is(':checked')) { 
+            ids.push($(this).val()) 
+        }
+    }); 
+    console.log(ids)
+    if (!ids.length) {
+        alert('请选择发送数据端点的设备')
+        return
+    }
+
+    // 检查当前设备是否在线,获取socket的实例
+    var socketObjArray = []
+    for(var i = 0; i < ids.length; i++ ) {
+        if (!devicemunn[ids[i]].online) {
+            alert('设备ID:' + ids[i] + ',MAC:' + devicemunn[ids[i]].device_mac + '不在线，不能发送数据端点')
+            return
+        } else {
+            var obj = getDeviceSocket(ids[i])
+            if (!obj) {
+                alert('没有找到'+'设备ID:' + ids[i] + ',MAC:' + devicemunn[ids[i]].device_mac + '对应的设备的类')
+                return
+            }
+            socketObjArray.push(obj)
+        }
+    }
+    console.log(socketObjArray)
+
+    var dataindex = $('#index')[0].value
+    var dataval = $('#dataval')[0].value
+    if (!dataindex || !dataval) {
+        alert('端点索引不能为空')
+        return
+    }
+
+    // 布尔类型转换
+    if (dataval === 'true' || dataval === 'false') {  
+        dataval = dataval === 'true' ? true : false
+    }
+    console.log(dataval)
+
+    var dataArr = [{
+        index: dataindex * 1, // 数据端点索引
+        value: dataval // 数据端点值
+    }]
+    console.log(dataArr)
+
+    socketObjArray.forEach(function(item){
+        item.emit('senddata', {
+            type: 'datapoint',
+            data: dataArr
+        }, function(res) {
+            console.log(res)
+            if (res.status === 0) {
+                alert("发送成功");
+                // 需要手动更新页面的端点
+                deviceProb(item.id, [{
+                    index: $('#index')[0].value * 1, // 数据端点索引
+                    value: $('#dataval')[0].value // 数据端点值
+                }])
+            } else {
+                alert("发送失败,状态:" + res.status)
+            }
+        })
+    })
+    
+}
+
+// 发送透传数据
+function sendpipe() {
+    if (!$('#pipe')[0].value) {
+        alert('透传值不能为空')
+        return
+    }
+
+    // 获取已经选中的设备
+    var ids = []
+    $(":checkbox").each(function(){ 
+        if ($(this).is(':checked')) { 
+            ids.push($(this).val()) 
+        }
+    }); 
+    console.log(ids)
+    if (!ids.length) {
+        alert('请选择发送透传的设备')
+        return
+    }
+
+    // 检查当前设备是否在线,获取socket的实例
+    var socketObjArray = []
+    for(var i = 0; i < ids.length; i++ ) {
+        if (!devicemunn[ids[i]].online) {
+            alert('设备ID:' + ids[i] + ',MAC:' + devicemunn[ids[i]].device_mac + '不在线，不能发送数据端点')
+            return
+        } else {
+            var obj = getDeviceSocket(ids[i])
+            if (!obj) {
+                alert('没有找到'+'设备ID:' + ids[i] + ',MAC:' + devicemunn[ids[i]].device_mac + '对应的设备的类')
+                return
+            }
+            socketObjArray.push(obj)
+        }
+    }
+    console.log(socketObjArray)
+
+    var pipeSync = $('#pipe')[0].value.split(',')
+    if (!pipeSync.length) {
+        alert('透传值不能为空')
+        return
+    }
+
+    socketObjArray.forEach(function(item){
+        // 透传FF 00 02 03 05 FE
+        item.emit('senddata', {
+            type: 'pipe',
+            data: pipeSync
+        }, (res) => {
+            if (res.status === 0) {
+                // 发送成功
+                alert('发送成功')
+            }
+        })
+    })
+
+    
+}
+
+
+// 销毁sdk实例
+function destorySdk() {
+    if (ws) {
+        ws.emit('destory')
+    }
+
+    ws = null
+    dataPoint = {}
+    devicesList = [] // 初始化后的sdk设备的类，可以获取和操作数据端点
+}
+
+// 更新在线状态
+function upOnlineStatus (product, deviceId) {
+    fetchVdevicePromise(product, deviceId).then(function(data){
+        console.log('666666666666')
+        console.log(data)
+        devices.forEach(function(item){
+            if (item.device_id == deviceId) {
+                item.online = data.online
+            }
+            devicemunn[item.device_id] = item
+        })
+        var str = '在线状态：'
+        str += data.online ? '<span style="color:green">在线</span>' : '<span style="color:red">离线</span>'
+        $('#device' + deviceId).html(str)
+        console.log(devices)
+        console.log(devicemunn)
+    })
+}
+
+// 处理设备上报的数据端点
+function deviceProb(deviceId, data) {
+    if (!dataPoint[deviceId]) {
+        console.error('找不到设备【'+deviceId+'】的数据端点集合')
+        return 
+    }
+    if (!data.length) {
+        console.log('数据不存在')
+        return
+    }
+    data.forEach(changData => {
+        if (!dataPoint[deviceId].length) {
+            dataPoint[deviceId].push({
+                index: changData.index,
+                value: changData.value
+            })
+        } else {
+            dataPoint[deviceId].forEach((item, index) => {
+                if (item.index === changData.index) {
+                    dataPoint[deviceId].splice(index, 1, {
+                        index: changData.index,
+                        value: changData.value
+                    })
+                }
+            })
+        }
+    })
+    updateData(deviceId, dataPoint[deviceId])
+}
+
+
+// 处理数据端点渲染
+function updateData(deviceId, data) {
+    var str = `<table style="width:100%" border="1" cellspacing="0" class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>索引</th>
+                            <th>端点</th>
+                        </tr>
+                    </thead>
+                    <tbody>`
+    data.forEach(function(item) {
+        str += '<tr><td>' + item.index + '</td><td>' + item.value + '</td></tr>'
+    })
+    str += '</tbody></table>'
+    var device = '#devicetable' + deviceId
+    $(device).html(str)
+}
+
+
+
+// 获取每个设备对应的产品id
+function getProductId(deviceId, array) {
+    var product_id = ''
+    for (var i = 0; i < array.length; i++) {
+        if (array[i].device_id === deviceId) {
+            product_id = array[i].device_pid
+            break
+        }
+    }
+    return product_id
+}
+
+// 获取当前设备的类
+function getDeviceSocket(deviceId) {
+    var device = devicesList.filter(function(item) {
+        return item.id == deviceId
+    });
+    if (device.length) {
+        return device[0]
+    } else {
+        return null
+    }
+}
+
+
+</script>
+
+</html>

@@ -58,6 +58,17 @@ function getVdevice (productId, deviceId, cb, errcb) {
     sdkAjax('get', platformUrl + 'product/' + productId + '/v_device/' + deviceId, cb,errcb)
 }
 
+// 获取虚拟设备的端口(封装promise)
+function fetchVdevicePromise (productId, deviceId) {
+    return new Promise(function(resolve, reject){
+        sdkAjax('get', platformUrl + 'product/' + productId + '/v_device/' + deviceId, function(data){
+            resolve(data)
+        } ,function(err){
+            reject(err)
+        })
+    })
+}
+
 
 // 邮箱注册
  function email_register (params, cb, errcb) {

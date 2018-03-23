@@ -15,13 +15,13 @@
       </div>
       <div class="form-item mb20">
         <div class="input-warp">
-          <input type="text" class="input-content" name="corpid"  id="corpid" placeholder="企业ID" >
+          <input type="text" class="input-content" name="corpid"  id="corpid" placeholder="企业ID" value="100fa6af8c879a00">
         </div>
         <div class="input-warp">
-          <input type="text" class="input-content" name="account" id="account" placeholder="用户名" >
+          <input type="text" class="input-content" name="account" id="account" placeholder="用户名" value="1325896386@qq.com">
         </div>
         <div class="input-warp">
-          <input  class="input-content"  name="password" type="password" id="password" placeholder="密码" >
+          <input  class="input-content"  name="password" type="password" id="password" placeholder="密码" value="yangpu0924">
         </div>
       </div>
       <div class="submit-btn-wrap">
@@ -43,6 +43,9 @@
 <script type="text/javascript" src="static/jquery-3.2.1.min.js"></script>
 <script type="text/javascript" src="js/ajax.js"></script>
 <script type="text/javascript">
+  // email: '1325896386@qq.com',
+  // password: 'yangpu0924',
+  // corp_id: '100fa6af8c879a00'
   function onSumbit() {
     var email = $('#account')[0].value
     var password = $('#password')[0].value

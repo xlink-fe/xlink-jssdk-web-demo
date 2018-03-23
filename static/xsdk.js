@@ -60,6 +60,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	  value: true
 	});
 
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
 	var _enum = __webpack_require__(1);
 
 	var _xui = __webpack_require__(2);
@@ -78,6 +80,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _mqtt2 = _interopRequireDefault(_mqtt);
 
+	var _v = __webpack_require__(75);
+
+	var _v2 = _interopRequireDefault(_v);
+
 	var _lang = __webpack_require__(60);
 
 	var _events = __webpack_require__(59);
@@ -86,67 +92,122 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	var _instance = {}; // 保存sdk实例，每种类型只保留一个实例
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	function XSDK(type, option) {
-	  if (!(0, _lang.isString)(type)) {
-	    throw new TypeError('error params');
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var XSDK = function (_EventEmitter) {
+	  _inherits(XSDK, _EventEmitter);
+
+	  function XSDK(type, option) {
+	    _classCallCheck(this, XSDK);
+
+	    var _this = _possibleConstructorReturn(this, (XSDK.__proto__ || Object.getPrototypeOf(XSDK)).call(this));
+
+	    _this.type = type;
+	    _this.clientId = '';
+	    _this.option = option || {};
+	    _this._instance = {}; // 保存sdk实例，每种类型只保留一个实例
+	    _this.getXUI = _xui2.default;
+	    _this.getDataStorage = _dataStorage2.default;
+	    _this.init();
+	    return _this;
 	  }
-	  if (type === _enum.SDKType.WEBSOCKET) {
-	    // 发送数据时，数据项不能为空
-	    if (option.type && option.type === 'platform') {
-	      if (!(0, _lang.isPlainObject)(option) || !(0, _lang.isString)(option.host)) {
+
+	  _createClass(XSDK, [{
+	    key: 'init',
+	    value: function init() {
+	      this.checkoutOption();
+	      this.initXSDK();
+	    }
+	  }, {
+	    key: 'checkoutOption',
+	    value: function checkoutOption() {
+	      if (!(0, _lang.isString)(this.type)) {
 	        throw new TypeError('error params');
 	      }
-	    } else {
-	      if (!(0, _lang.isPlainObject)(option) || !(0, _lang.isString)(option.host) || !(0, _lang.isString)(option.userid) || !(0, _lang.isString)(option.authorize)) {
-	        throw new TypeError('error params');
+	      if (this.type === _enum.SDKType.WEBSOCKET) {
+	        // 发送数据时，数据项不能为空
+	        if (this.option.type && this.option.type === 'platform') {
+	          if (!(0, _lang.isPlainObject)(this.option) || !(0, _lang.isString)(this.option.host)) {
+	            throw new TypeError('error params');
+	          }
+	        } else {
+	          if (!(0, _lang.isPlainObject)(this.option) || !(0, _lang.isString)(this.option.host) || !(0, _lang.isString)(this.option.userid) || !(0, _lang.isString)(this.option.authorize)) {
+	            throw new TypeError('error params');
+	          }
+	        }
+	      } else if (this.type === _enum.SDKType.MQTT || this.type === _enum.SDKType.PROBE) {
+	        if (!this.option.type || this.option.type !== 'platform' && this.option.type !== 'app') {
+	          console.error('type do not exsit');
+	          throw new Error('type do not exsit');
+	        }
+	        if (this.option.RES) {
+	          if (!/[0-9a-zA-Z]{1,16}/.test(this.option.RES)) {
+	            console.error('登录源限定：字段可选，1到16个字符，仅允许数字和字母');
+	            throw new Error('登录源限定：字段可选，1到16个字符，仅允许数字和字母');
+	          }
+	        }
 	      }
 	    }
-	  }
-	  // 借用构造函数继承
-	  _events2.default.call(this);
+	  }, {
+	    key: '_distorySdkBind',
+	    value: function _distorySdkBind(alias) {
+	      var _this2 = this;
 
-	  var alias = option ? type + '_' + option.host : type;
-	  if (this instanceof XSDK) {
-	    if (_instance[alias] === undefined) {
-	      switch (type) {
-	        case _enum.SDKType.WIFI:
-	          break;
-	        case _enum.SDKType.BLUETOOTH:
-	          break;
-	        case _enum.SDKType.WEBSOCKET:
-	          (0, _websocket2.default)(this, option);
-	          break;
-	        case _enum.SDKType.MQTT:
-	          (0, _mqtt2.default)(this, option);
-	          break;
-	        default:
-	          throw new Error(type + ' is not support');
-	      }
-	      this.type = type;
-	      _instance[alias] = this;
-	      _distorySdkBind(this, alias);
-	    } else {
-	      return _instance[alias];
+	      // 监听实例的销毁
+	      this.on(_enum.SDKEvent.DESTORY, function () {
+	        delete _this2._instance[alias];
+	      });
 	    }
-	  } else {
-	    return new XSDK(type, option);
-	  }
-	}
+	  }, {
+	    key: 'initXSDK',
+	    value: function initXSDK() {
+	      var alias = this.option ? this.type + '_' + this.option.host : this.type;
+	      if (this instanceof XSDK) {
+	        if (this._instance[alias] === undefined) {
+	          switch (this.type) {
+	            case _enum.SDKType.WIFI:
+	              break;
+	            case _enum.SDKType.BLUETOOTH:
+	              break;
+	            case _enum.SDKType.WEBSOCKET:
+	              (0, _websocket2.default)(this, this.option);
+	              break;
+	            case _enum.SDKType.MQTT:
+	              this.clientId = _enum.clientIds.v5[this.option.type];
+	              if (this.option.type === 'app' && this.option.RES !== undefined) {
+	                this.clientId = this.clientId + 'RES:' + this.option.RES + ';';
+	              }
+	              var v5 = new _mqtt2.default(this, this.option);
+	              v5.initMqttClient(this.clientId);
+	              break;
+	            case _enum.SDKType.PROBE:
+	              this.clientId = _enum.clientIds.v6[this.option.type];
+	              if (this.option.type === 'app' && this.option.RES !== undefined) {
+	                this.clientId = this.clientId + 'RES:' + this.option.RES + ';';
+	              }
+	              var v6 = new _v2.default(this, this.option);
+	              v6.initMqttClient(this.clientId);
+	              break;
+	            default:
+	              throw new Error(type + ' is not support');
+	          }
+	          this._instance[alias] = this;
+	          this._distorySdkBind(this, alias);
+	        } else {
+	          return this._instance[alias];
+	        }
+	      } else {
+	        return new XSDK(this.type, this.option);
+	      }
+	    }
+	  }]);
 
-	function _distorySdkBind(sdk, alias) {
-	  // 监听实例的销毁
-	  sdk.on(_enum.SDKEvent.DESTORY, function () {
-	    delete _instance[alias];
-	  });
-	}
-
-	// 原型琏继承
-	Object.setPrototypeOf(XSDK.prototype, _events2.default.prototype);
-
-	XSDK.getXUI = _xui2.default;
-	XSDK.getDataStorage = _dataStorage2.default;
+	  return XSDK;
+	}(_events2.default);
 
 	window.XSDK = XSDK;
 
@@ -178,6 +239,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	};
 
 	var deviceEvent = {
+	  PROBEDATA: 'probedata',
 	  LOG: 'log',
 	  CONNECT: 'connect', // 连接设备
 	  DISCONNECT: 'disconnect', // 断开设备连接
@@ -187,6 +249,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  SUBSCRIBE: 'subscribe', // 订阅设备
 	  UNSUBSCRIBE: 'unsubscribe', // 取消订阅设备
 	  SENDDATA: 'senddata', // 发送设备数据
+	  EVENT: 'event', // 应用事件
 	  STATUSCHANGE: 'statuschange', // 设备状态改变，上线(1)或者下线(0) 见deviceStatus
 	  ERROR: 'error'
 	};
@@ -195,7 +258,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	  WIFI: 'wifi',
 	  BLUETOOTH: 'bluetooth',
 	  WEBSOCKET: 'websocket',
-	  MQTT: 'mqtt'
+	  MQTT: 'mqtt',
+	  PROBE: 'prope'
 	};
 
 	var errorCode = {
@@ -215,14 +279,27 @@ return /******/ (function(modules) { // webpackBootstrap
 	  event: '$e', // 系统事件
 	  sub: '$g', // 订阅设备结果（订阅）
 	  log: '$k', // 设备日志!（订阅）
-	  ticket: '$m' // 设备返回Ticket（订阅）
+	  ticket: '$m', // 设备返回Ticket（订阅）
+	  getPrope: '$x' // 应用向设备获取数据端点
 	};
 	var sendType = {
 	  setPoint: '$7', // 应用设置/发送数据端点（发送）
 	  getPoint: '$9', // 应用获取数据端点（发送）
 	  offline: '$b', // 应用下线（发送）
 	  sub: '$f', // 订阅设备(发送)
-	  ticket: '$l' // 获取设备Ticket（发送）
+	  ticket: '$l', // 获取设备Ticket（发送）
+	  sendPrope: '$w'
+	};
+
+	var clientIds = {
+	  v5: {
+	    app: 'X:APP;A:4;V:1;',
+	    platform: 'X:APP;A:5;V:1;'
+	  },
+	  v6: {
+	    app: 'X:APP;A:4;V:2;',
+	    platform: 'X:APP;A:5;V:2;'
+	  }
 	};
 
 	exports.SDKEvent = SDKEvent;
@@ -232,6 +309,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports.deviceStatus = deviceStatus;
 	exports.subscribeType = subscribeType;
 	exports.sendType = sendType;
+	exports.clientIds = clientIds;
 
 /***/ }),
 /* 2 */
@@ -389,7 +467,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	var _curMessageId = 0;
 	var MAX_MESSAGE_SIZE = 256;
 	var isPlatform = false;
-	var isappLogin = false;
 
 	function initWebsocket(xsdk, option) {
 	  xsdk.host = option.host;
@@ -450,7 +527,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    // 输出状态
 	    _outputLogs(data);
 	  }).on('error', function (error) {
-	    _xsdk && _xsdk.emit(_enum.SDKEvent.ERROR, error);
+	    _xsdk.emit(_enum.SDKEvent.ERROR, error);
 	  });
 	}
 
@@ -471,13 +548,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	  if (isPlatform) {
 	    clearVariables();
 	  } else {
-	    if (isappLogin) {
-	      _socket.emit(_protocol2.default.logout.events, (0, _lang.clone)(_protocol2.default.logout.params), function (data) {
-	        clearVariables();
-	      });
-	    } else {
+	    _socket.emit(_protocol2.default.logout.events, (0, _lang.clone)(_protocol2.default.logout.params), function (data) {
 	      clearVariables();
-	    }
+	    });
 	  }
 	}
 
@@ -497,8 +570,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    deviceLists.forEach(function (item) {
 	      var device = new _device2.default();
 	      device.id = item.device_id;
-	      // device.mac = item.device_mac
-	      // device.pid = item.device_pid
+	      device.mac = item.device_mac;
+	      device.pid = item.device_pid;
 	      device.on(_enum.deviceEvent.SENDDATA, function (data, cb) {
 	        _sendData(this.id, data, cb);
 	      });
@@ -614,6 +687,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 
 	function _probeRecv(data) {
+		console.log(data)
 	  if (!data.is_resp) {
 	    return;
 	  }
@@ -625,8 +699,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    // 0表示成功 10 表示设备离线
 	    cb({
 	      status: data.errcode,
-	      msg: data.errmsg,
-	      deviceId: data.device_id
+	      msg: data.errmsg
 	    });
 	    return;
 	  }
@@ -643,13 +716,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	    cb({
 	      status: 0,
 	      data: dps,
-	      deviceId: data.device_id
+	      deviceId: data.deviceid
 	    });
 	  }
 	}
 
 	function _loginRecv() {
-	  isappLogin = true;
 	  if (!_xsdk) {
 	    return;
 	  }
@@ -696,7 +768,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    device.emit(_enum.deviceEvent.DATA, {
 	      type: 'pipe',
 	      data: decodedArr,
-	      deviceId: device.id
+	      deviceId: data.from_id
 	    });
 	  }
 	  if (data.pipe_sync && data.pipe_sync.encode === 'base64') {
@@ -704,7 +776,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    device.emit(_enum.deviceEvent.DATA, {
 	      type: 'pipe_sync',
 	      data: _decodedArr,
-	      deviceId: device.id
+	      deviceId: data.from_id
 	    });
 	  }
 	}
@@ -718,7 +790,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  device.emit(_enum.deviceEvent.DATA, {
 	    type: 'datapoint',
 	    data: data.datapoint,
-	    deviceId: device.id
+	    deviceId: data.device_id
 	  });
 	}
 
@@ -10532,11 +10604,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-	var _mqttws = __webpack_require__(67);
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _mqttws2 = _interopRequireDefault(_mqttws);
-
-	var _md = __webpack_require__(68);
+	var _md = __webpack_require__(67);
 
 	var _md2 = _interopRequireDefault(_md);
 
@@ -10548,417 +10618,1939 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _lang = __webpack_require__(60);
 
-	var _arrayBuffer = __webpack_require__(72);
+	var _arrayBuffer = __webpack_require__(71);
 
 	var buffer = _interopRequireWildcard(_arrayBuffer);
+
+	var _mqtt = __webpack_require__(73);
+
+	var _mqtt2 = _interopRequireDefault(_mqtt);
 
 	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	var _client = null; // MQTT服务器
-	var _xsdk = null; // 通过sdk事件暴露出去this
-	var _devices = {}; // 保存每个设备的实例
-	var _msgId = 0;
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	var userName = '';
-	var password = '';
-	var clientId = '';
+	var V5 = function () {
+	  function V5(xsdk, option) {
+	    _classCallCheck(this, V5);
 
-	/**
-	 * 初始化mqtt实例
-	 * @param {any} _xsdk
-	 * @param {Object} option
-	 */
-	function initMqttClient(xsdk, option) {
-	  if (!_mqttws2.default || !_mqttws2.default.MQTT) {
-	    throw new Error('MQTT do not exsit');
-	  }
-	  if (!option.type) {
-	    throw new Error('type do not exsit');
-	  }
-	  if (option.type === 'platform' && !option.token) {
-	    throw new Error('token do not exsit');
-	  }
-	  if (option.type === 'app' && (!option.userid || !option.authorize)) {
-	    throw new Error('userId or authorize do not exsit');
-	  }
-
-	  if (option.type === 'app') {
-	    userName = option.userid;
-	    password = (0, _md2.default)('' + option.userid + option.authorize);
-	    clientId = 'X:APP;A:4;V:1;';
-	  } else if (option.type === 'platform') {
-	    userName = option.token;
-	    clientId = 'X:APP;A:5;V:1;';
-	  }
-
-	  // 接收外面的实例
-	  _xsdk = xsdk;
-
-	  // 开机事件
-	  _connectClient(option);
-
-	  // 监听外部的sdk事件
-	  _listenSdkEvent();
-	}
-
-	// 开机事件
-	function _connectClient(option) {
-	  if (!option.host || !clientId) {
-	    throw new Error('host or clientId do not exsit');
-	  }
-	  if (!_client) {
-	    // //建立客户端实例
-	    _client = new _mqttws2.default.MQTT.Client(option.host, clientId);
-	    // 连接丢失
-	    _client.onConnectionLost = onConnectionLost;
-	    // 接收到消息
-	    _client.onMessageArrived = onMessageArrived;
-	  }
-
-	  var connectOption = {
-	    userName: userName,
-	    password: password,
-	    mqttVersion: 4,
-	    onSuccess: function onSuccess() {
-	      _loginRecv();
-	    },
-	    onFailure: function onFailure(err) {
-	      if (_xsdk) {
-	        _xsdk.emit(_enum.SDKEvent.ERROR, new Error(err.errorMessage || '连接失败'));
-	        // 销毁实例
-	        _xsdk.emit(_enum.SDKEvent.DESTORY, false);
-	      }
-	    }
-	  };
-	  if (option && option.keepAliveInterval && typeof option.keepAliveInterval === 'number') {
-	    connectOption.keepAliveInterval = option.keepAliveInterval;
-	  } else {
-	    connectOption.keepAliveInterval = 40;
-	  }
-	  _client.connect(connectOption);
-	}
-
-	// 通知用户连接成功
-	function _loginRecv() {
-	  if (!_xsdk) {
-	    return;
-	  }
-	  _xsdk.emit(_enum.SDKEvent.READY); // 1设备准备就绪
-	}
-
-	// 监听sdk事件
-	function _listenSdkEvent() {
-	  _xsdk.on(_enum.SDKEvent.ADDDEVICES, function (deviceLists) {
-	    // 1. 添加设备事件
-	    _createDevices(deviceLists);
-	  }).on(_enum.SDKEvent.DESTORY, function (boolean) {
-	    // 销毁mqtt事件,关机事件
-	    _distorySdk(boolean);
-	  });
-	}
-
-	/**
-	 * 订阅事件在订阅的时候写好事件的处理和回调
-	 * @param {Object} topic
-	 * @param {function} successEvent
-	 * @param {function} errorEvent
-	 * @returns
-	 */
-	function _subscribe(topic, successEvent, errorEvent) {
-	  _client.subscribe(topic, {
-	    onSuccess: function onSuccess(res) {
-	      if (successEvent && (0, _lang.isFunction)(successEvent)) {
-	        successEvent();
-	      }
-	    },
-	    onFailure: function onFailure(err) {
-	      if (errorEvent && (0, _lang.isFunction)(errorEvent)) {
-	        errorEvent({
-	          status: 0,
-	          err: err,
-	          msg: '\u8BA2\u9605' + topic + '\u5931\u8D25'
-	        });
-	      }
-	    }
-	  });
-	}
-
-	// 销毁实例并且关闭mqtt, boolean为true开机成功
-	function _distorySdk() {
-	  var boolean = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
-
-	  if (_client && boolean) {
-	    _client.disconnect();
-	  }
-	  _devices = {};
-	  _client = null;
-	  _xsdk = null;
-	}
-
-	/**
-	 * MQTT处理连接丢失
-	 * @param  {Object} res 响应体
-	 */
-	function onConnectionLost(res) {
-	  // 0为正常关机的丢失,销毁实例的时候就是正常关机
-	  if (res.errorCode !== 0 && _xsdk) {
-	    _xsdk.emit(_enum.SDKEvent.ERROR, new Error(res.errorMessage || '连接丢失'));
-	    // 销毁实例
-	    _xsdk.emit(_enum.SDKEvent.DESTORY, false);
-	  }
-	}
-
-	/**
-	 * MQTT处理信息接收
-	 * @param  {Object} res 响应体
-	 */
-	function onMessageArrived(res) {
-	  if (res && res.destinationName) {
-	    var arr = res.destinationName.split('/');
-	    if (arr.length > 1) {
-	      var _arr = _slicedToArray(arr, 2),
-	          topic = _arr[0],
-	          deviceId = _arr[1];
-
-	      if (_devices[deviceId] && _devices[deviceId][topic]) {
-	        _devices[deviceId][topic](res);
-	      }
-	    }
-	  }
-	}
-
-	// 写进事件
-	function _writeEvent(topic, deviceId, callback) {
-	  if (_devices[deviceId] && !_devices[deviceId][topic] && callback && (0, _lang.isFunction)(callback)) {
-	    _devices[deviceId][topic] = function (message) {
-	      var result = null;
-	      if (/\$6\/\d+/.test(message.destinationName)) {
-	        // 设备上报数据端点的回调1x
-	        result = buffer.syncDatapoints(message.payloadBytes);
-	      } else if (/\$8\/\d+/.test(message.destinationName)) {
-	        // 设置数据端点的结果1x
-	        result = buffer.setDataPointResult(message.payloadBytes);
-	      } else if (/\$a\/\d+/.test(message.destinationName)) {
-	        // 获取数据端点的订阅1x
-	        result = buffer.getDataPointResult(message.payloadBytes);
-	      } else if (/\$k\/\d+/.test(message.destinationName)) {
-	        // 设备日志1x
-	        result = buffer.log(message.payloadBytes);
-	      } else {
-	        result = message;
-	      }
-	      // 执行对应的回调函数并且把结果传出去
-	      callback(result);
+	    this._client = null; // MQTT服务器
+	    this.option = option;
+	    this._xsdk = xsdk; // 通过sdk事件暴露出去this
+	    this._devices = {}; // 保存每个设备的实例
+	    this._msgId = 0;
+	    this.mqttOption = {
+	      userName: '',
+	      password: '',
+	      clientId: ''
 	    };
 	  }
-	}
 
-	// 发送数据端点
-	function _sendMessage(params, callback) {
-	  var event = _enum.sendType[params.topic] + '/' + params.deviceId;
-	  var memory = null;
-
-	  if (/\$7\/\d+/.test(event)) {
-	    if (!params.data || !params.data.length) return;
-
-	    var _buffer$setDataPointA = buffer.setDataPointArray(params.data, _msgId),
-	        b = _buffer$setDataPointA.b,
-	        msgId = _buffer$setDataPointA.msgId;
-
-	    _msgId = msgId;
-	    memory = b;
-	  } else if (/\$9\/\d+/.test(event)) {
-	    var _buffer$getDataPoint = buffer.getDataPoint(_msgId),
-	        _b = _buffer$getDataPoint.b,
-	        _msgId2 = _buffer$getDataPoint.msgId;
-
-	    _msgId = _msgId2;
-	    memory = _b;
-	  }
-	  if (!memory) return;
-	  var message = new _mqttws2.default.MQTT.Message(memory);
-	  message.destinationName = event;
-	  message.qos = 1;
-	  _client.send(message);
-
-	  if (callback && (0, _lang.isFunction)(callback)) {
-	    callback();
-	  }
-	}
-
-	// 创造一个设备监听的类
-	function _createDevices(deviceLists) {
-	  if (deviceLists && deviceLists.length) {
-	    var added = [];
-	    deviceLists.forEach(function (item) {
-	      if (_devices[item.device_id] && _devices[item.device_id] instanceof _device2.default) {
-	        added.push(_devices[item.device_id]);
-	      } else {
-	        var device = new _device2.default();
-	        device.id = item.device_id;
-	        device.mac = item.device_mac;
-	        device.pid = item.device_pid;
-	        _devices[device.id] = device;
-
-	        // 1.发送数据端点需要sendMessage
-	        device.on(_enum.deviceEvent.SENDDATA, function (data, cb) {
-	          _sendData(this.id, data, cb);
-	        });
-	        // 2.请求获取所有数据端点需要sendMessage
-	        device.on(_enum.deviceEvent.PROBE, function (cb) {
-	          _probeDevice(this.id, cb);
-	        });
-
-	        // 3.设备日志
-	        device.on(_enum.deviceEvent.LOG, function (cb) {
-	          _log(this.id, cb);
-	        });
-
-	        // 4.订阅设备上报
-	        deviceSubscribe(item.device_id);
-
-	        added.push(device);
+	  _createClass(V5, [{
+	    key: 'checkOptionsError',
+	    value: function checkOptionsError() {
+	      if (!_mqtt2.default) {
+	        console.error('MQTT do not exsit');
+	        throw new Error('MQTT do not exsit');
 	      }
-	    });
-	    _xsdk.emit(_enum.SDKEvent.DEVICESREADY, added);
-	  }
-	}
+	      if (this.option.type === 'platform' && !this.option.token) {
+	        console.error('token do not exsit');
+	        throw new Error('token do not exsit');
+	      }
+	      if (this.option.type === 'app' && (!this.option.userid || !this.option.authorize)) {
+	        console.error('userId or authorize do not exsit');
+	        throw new Error('userId or authorize do not exsit');
+	      }
+	    }
 
-	// 获取数据端点
-	function _probeDevice(deviceId, callback) {
-	  if (!_client || !_xsdk) {
-	    throw new Error('xsdk not init');
-	  }
-	  var topic = _enum.subscribeType['getPoint'];
-	  if (_devices[deviceId] && !_devices[deviceId][topic]) {
-	    _subscribe(topic + '/' + deviceId, function () {
-	      // 1.写进事件
-	      _writeEvent(topic, deviceId, function (res) {
-	        if (callback && (0, _lang.isFunction)(callback)) {
-	          callback({ data: res, deviceId: deviceId });
+	    /**
+	     * 初始化mqtt实例
+	     */
+
+	  }, {
+	    key: 'initMqttClient',
+	    value: function initMqttClient(clientId) {
+	      var option = this.option;
+	      this.checkOptionsError();
+
+	      if (option.type === 'app') {
+	        this.mqttOption.userName = option.userid;
+	        this.mqttOption.password = (0, _md2.default)('' + option.userid + option.authorize);
+	      } else if (option.type === 'platform') {
+	        this.mqttOption.userName = option.token;
+	      }
+
+	      // 开机事件
+	      this._connectClient(option, clientId);
+
+	      // 监听外部的sdk事件
+	      this._listenSdkEvent();
+	    }
+
+	    /**
+	     * 开机事件
+	     * @param {Object} option
+	     */
+
+	  }, {
+	    key: '_connectClient',
+	    value: function _connectClient(option, clientId) {
+	      var _this = this;
+
+	      if (this._client) return;
+	      // 建立客户端实例
+	      this._client = new _mqtt2.default(option.host, clientId);
+	      // 连接丢失
+	      this._client.on('connectionLost', this.onConnectionLost.bind(this));
+	      // 接收到消息
+	      this._client.on('messageArrived', this.onMessageArrived.bind(this));
+	      this._client.connect(this.mqttOption).then(function () {
+	        if (!_this._xsdk) {
+	          return console.error('can not find the XSDK');
 	        }
-	      });
-
-	      // 2.订阅成功发送自动获取数据端点
-	      _sendMessage({ topic: 'getPoint', deviceId: deviceId });
-	    }, function (err) {
-	      // 订阅失败
-	      if (_devices && _devices[deviceId]) {
-	        _devices[deviceId].emit(_enum.deviceEvent.ERROR, err);
-	      }
-	    });
-	  } else {
-	    // 订阅成功发送自动获取数据端点
-	    _sendMessage({ topic: 'getPoint', deviceId: deviceId });
-	  }
-	}
-
-	// 设备上报数据端点
-	function _pipeRecv(data, deviceId) {
-	  if (!deviceId || !_devices[deviceId]) {
-	    return;
-	  }
-	  var device = _devices[deviceId];
-	  device.emit(_enum.deviceEvent.DATA, {
-	    type: 'datapoint',
-	    data: data,
-	    deviceId: deviceId
-	  });
-	}
-
-	// 返回设备日志
-	function _log(deviceId, callback) {
-	  if (!deviceId || !_devices[deviceId]) {
-	    return;
-	  }
-	  var topic = _enum.subscribeType['log'];
-	  if (_devices[deviceId] && !_devices[deviceId][topic]) {
-	    _subscribe(topic + '/' + deviceId, function () {
-	      // 1.写进事件,方便全局调用获取
-	      _writeEvent(topic, deviceId, function (data) {
-	        if (callback && (0, _lang.isFunction)(callback)) {
-	          callback({
-	            data: data,
-	            deviceId: deviceId
-	          });
-	        }
-	      });
-	    }, function (err) {
-	      // 订阅失败
-	      if (_devices && _devices[deviceId]) {
-	        _devices[deviceId].emit(_enum.deviceEvent.ERROR, err);
-	      }
-	    });
-	  }
-	}
-
-	// 发送数据端点
-	function _sendData(deviceId, data, callback) {
-	  if (!_client || !_xsdk) {
-	    throw new Error('xsdk not init');
-	  }
-	  if (!(0, _lang.isPlainObject)(data) && (0, _lang.isArray)(data.data)) {
-	    throw new Error('params error');
-	  }
-
-	  if (data.type === 'datapoint' && (0, _lang.isArray)(data.data)) {
-	    // 设置数据端点
-	    // 订阅发送数据端点
-	    var topic = _enum.subscribeType['setPoint'];
-	    if (_devices[deviceId] && !_devices[deviceId][topic]) {
-	      _subscribe(topic + '/' + deviceId, function () {
-	        // 写进事件,方便全局调用获取
-	        _writeEvent(topic, deviceId, function (res) {
-	          if (callback && (0, _lang.isFunction)(callback)) {
-	            callback(res);
-	          }
-	        });
+	        _this._xsdk.emit(_enum.SDKEvent.READY); // 1设备准备就绪
 	      }, function (err) {
-	        // 订阅失败
-	        if (_devices && _devices[deviceId]) {
-	          _devices[deviceId].emit(_enum.deviceEvent.ERROR, err);
+	        if (_this._xsdk) {
+	          _this._xsdk.emit(_enum.SDKEvent.ERROR, new Error(err.errorMessage || '连接失败'));
+	          // 销毁实例
+	          _this._xsdk.emit(_enum.SDKEvent.DESTORY, false);
 	        }
 	      });
+	    }
+
+	    /**
+	     * 监听sdk事件
+	     */
+
+	  }, {
+	    key: '_listenSdkEvent',
+	    value: function _listenSdkEvent() {
+	      var _this2 = this;
+
+	      this._xsdk.on(_enum.SDKEvent.ADDDEVICES, function (deviceLists) {
+	        // 1. 添加设备事件
+	        _this2._createDevices(deviceLists);
+	      });
+	      this._xsdk.on(_enum.SDKEvent.DESTORY, function (boolean) {
+	        // 销毁mqtt事件,关机事件
+	        _this2._distorySdk(boolean);
+	      });
+	    }
+
+	    /**
+	     * 销毁实例并且关闭mqtt, boolean为true开机成功(主要应用于外部调用DESTORY)
+	     */
+
+	  }, {
+	    key: '_distorySdk',
+	    value: function _distorySdk() {
+	      var boolean = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
+
+	      if (this._client && boolean) {
+	        this._client.disconnect();
+	        console.log('the mqtt client is connected');
+	      }
+	      this._devices = {};
+	      this._client = null;
+	      this._xsdk = null;
+	    }
+
+	    /**
+	     * MQTT处理连接丢失
+	     * @param  {Object} res 响应体
+	     */
+
+	  }, {
+	    key: 'onConnectionLost',
+	    value: function onConnectionLost(res) {
+	      // 0为正常关机的丢失,销毁实例的时候就是正常关机
+	      if (res.errorCode !== 0 && this._xsdk) {
+	        console.error('连接丢失');
+	        console.log(res);
+	        this._xsdk.emit(_enum.SDKEvent.ERROR, new Error(res.errorMessage || '连接丢失'));
+	        // 销毁实例
+	        this._xsdk.emit(_enum.SDKEvent.DESTORY, false);
+	      }
+	    }
+
+	    /**
+	     * MQTT处理信息接收
+	     * @param  {Object} res 响应体
+	     */
+
+	  }, {
+	    key: 'onMessageArrived',
+	    value: function onMessageArrived(res) {
+	      console.log(res);
+	      if (res && res.destinationName) {
+	        var arr = res.destinationName.split('/');
+	        if (arr.length > 1) {
+	          var _arr = _slicedToArray(arr, 2),
+	              topic = _arr[0],
+	              deviceId = _arr[1];
+
+	          if (this._devices[deviceId] && this._devices[deviceId][topic]) {
+	            this._devices[deviceId][topic](res);
+	          }
+	        }
+	      }
+	      if (/\$d\/\d+/.test(res.destinationName)) {
+	        // 应用通知事件
+	        var result = buffer.notifyEvent(res.payloadBytes);
+	        console.log('应用通知事件===============');
+	        console.log(result);
+	        if (result.deviceId && this._devices[result.deviceId]) {
+	          this._devices[result.deviceId].emit(_enum.deviceEvent.EVENT, result);
+	          // 添加设备告警事件
+	          if (result.status === 2 || result.status === 8) {
+	            this._devices[result.deviceId].emit(_enum.deviceEvent.ALERT, result);
+	          }
+	        }
+	      }
+	    }
+
+	    // 写进事件
+
+	  }, {
+	    key: '_writeEvent',
+	    value: function _writeEvent(topic, deviceId, callback) {
+	      if (this._devices[deviceId] && callback && (0, _lang.isFunction)(callback)) {
+	        this._devices[deviceId][topic] = function (message) {
+	          var result = null;
+	          if (/\$6\/\d+/.test(message.destinationName)) {
+	            // 设备上报数据端点的回调1x
+	            result = buffer.syncDatapoints(message.payloadBytes);
+	          } else if (/\$8\/\d+/.test(message.destinationName)) {
+	            // 设置数据端点的结果1x
+	            result = buffer.setDataPointResult(message.payloadBytes);
+	          } else if (/\$a\/\d+/.test(message.destinationName)) {
+	            // 获取数据端点的订阅1x
+	            result = buffer.getDataPointResult(message.payloadBytes);
+	          } else if (/\$k\/\d+/.test(message.destinationName)) {
+	            // 设备日志1x
+	            result = buffer.log(message.payloadBytes);
+	          } else if (/\$x\/\d+/.test(message.destinationName)) {
+	            // prope
+	            result = buffer.getPropeDataPointResult(message.payloadBytes);
+	            console.log('prope事件');
+	            console.log(result);
+	          } else {
+	            result = message;
+	          }
+	          // 执行对应的回调函数并且把结果传出去
+	          callback(result);
+	        };
+	      }
 	    }
 
 	    // 发送数据端点
-	    _sendMessage({
-	      topic: 'setPoint',
-	      deviceId: deviceId,
-	      data: data.data
-	    });
-	  }
-	}
 
-	/**
-	 * 订阅主题，并且做处理
-	 * 设备上报数据端点
-	 */
-	function deviceSubscribe(deviceId) {
-	  if (!_xsdk || !deviceId) return;
-	  var topic = _enum.subscribeType['sync'];
-	  if (_devices[deviceId] && !_devices[deviceId][topic]) {
-	    _subscribe(topic + '/' + deviceId, function () {
-	      // 1.写进事件,方便全局调用获取
-	      _writeEvent(topic, deviceId, function (data) {
-	        // data是返回的数据
-	        _pipeRecv(data, deviceId);
-	      });
-	    }, function (err) {
-	      // 订阅失败
-	      if (_devices && _devices[deviceId]) {
-	        _devices[deviceId].emit(_enum.deviceEvent.ERROR, err);
+	  }, {
+	    key: '_sendMessage',
+	    value: function _sendMessage(params, callback) {
+
+	      var event = _enum.sendType[params.topic] + '/' + params.deviceId;
+	      var memory = null;
+
+	      if (/\$7\/\d+/.test(event)) {
+	        // 发送数据端点
+	        if (!params.data || !params.data.length) return;
+
+	        var _buffer$setDataPointA = buffer.setDataPointArray(params.data, this._msgId),
+	            b = _buffer$setDataPointA.b,
+	            msgId = _buffer$setDataPointA.msgId;
+
+	        this._msgId = msgId;
+	        memory = b;
+	      } else if (/\$9\/\d+/.test(event)) {
+	        // 应用获取数据端点
+	        var _buffer$getDataPoint = buffer.getDataPoint(this._msgId),
+	            _b = _buffer$getDataPoint.b,
+	            _msgId = _buffer$getDataPoint.msgId;
+
+	        this._msgId = _msgId;
+	        memory = _b;
+	      } else if (/\$w\/\d+/.test(event)) {
+	        // prope获取数据端点
+	        var _buffer$getPropeDataP = buffer.getPropeDataPoint(params.data, this._msgId),
+	            _b2 = _buffer$getPropeDataP.b,
+	            _msgId2 = _buffer$getPropeDataP.msgId;
+
+	        this._msgId = _msgId2;
+	        memory = _b2;
 	      }
-	    });
-	  }
-	}
+	      if (!memory) return;
+	      this._client.sendMessage(memory, event).then(function () {
+	        if (callback && (0, _lang.isFunction)(callback)) {
+	          callback();
+	        }
+	      });
+	    }
 
-	exports.default = initMqttClient;
+	    // 创造一个设备监听的类
+
+	  }, {
+	    key: '_createDevices',
+	    value: function _createDevices(deviceLists, callback) {
+	      var _this3 = this;
+
+	      if (deviceLists && deviceLists.length) {
+	        var added = [];
+	        deviceLists.forEach(function (item) {
+	          if (_this3._devices[item.device_id] && _this3._devices[item.device_id] instanceof _device2.default) {
+	            added.push(_devices[item.device_id]);
+	          } else {
+	            var device = new _device2.default();
+	            device.id = item.device_id;
+	            device.mac = item.device_mac;
+	            device.pid = item.device_pid;
+	            _this3._devices[device.id] = device;
+
+	            // 1.发送数据端点需要sendMessage
+	            device.on(_enum.deviceEvent.SENDDATA, function (data, cb) {
+	              _this3._sendData(item.device_id, data, cb);
+	            });
+	            // 2.请求获取所有数据端点需要sendMessage
+	            device.on(_enum.deviceEvent.PROBE, function (cb) {
+	              _this3._probeDevice(item.device_id, cb);
+	            });
+
+	            // 3.设备日志
+	            _this3._log(item.device_id);
+
+	            // 4.订阅设备上报
+	            _this3.deviceSubscribe(item.device_id);
+
+	            // 5.添加eventnotify事件
+	            _this3.eventnotify();
+
+	            // 6.添加prope请求
+	            // 添加prope请求：this._probegetData(item.device_id)
+	            if (callback && (0, _lang.isFunction)(callback)) {
+	              callback(device, item.device_id);
+	            }
+
+	            added.push(device);
+	          }
+	        });
+	        this._xsdk.emit(_enum.SDKEvent.DEVICESREADY, added);
+	      }
+	    }
+
+	    // 获取数据端点
+
+	  }, {
+	    key: '_probeDevice',
+	    value: function _probeDevice(deviceId, callback) {
+	      var _this4 = this;
+
+	      if (!this._client || !this._xsdk) {
+	        console.error('xsdk not init');
+	        throw new Error('xsdk not init');
+	      }
+	      var topic = _enum.subscribeType['getPoint'];
+	      if (this._devices[deviceId] && !this._devices[deviceId][topic]) {
+	        this._client.subscribe(topic + '/' + deviceId).then(function () {
+	          // 1.写进事件
+	          _this4._writeEvent(topic, deviceId, function (res) {
+	            if (callback && (0, _lang.isFunction)(callback)) {
+	              callback({ data: res, deviceId: deviceId });
+	            }
+	          });
+
+	          // 2.订阅成功发送自动获取数据端点
+	          _this4._sendMessage({ topic: 'getPoint', deviceId: deviceId });
+	        }, function (err) {
+	          // 订阅失败
+	          if (_this4._devices && _this4._devices[deviceId]) {
+	            console.error('Device[' + deviceId + '] fetch datapoint error');
+	            _this4._devices[deviceId].emit(_enum.deviceEvent.ERROR, err);
+	          }
+	        });
+	      } else {
+	        // 自动覆盖事件
+	        this._writeEvent(topic, deviceId, function (res) {
+	          if (callback && (0, _lang.isFunction)(callback)) {
+	            callback({ data: res, deviceId: deviceId });
+	          }
+	        });
+	        // 订阅成功发送自动获取数据端点
+	        this._sendMessage({ topic: 'getPoint', deviceId: deviceId });
+	      }
+	    }
+
+	    // 设备上报数据端点
+
+	  }, {
+	    key: '_pipeRecv',
+	    value: function _pipeRecv(data, deviceId) {
+	      if (!deviceId || !this._devices[deviceId]) {
+	        console.error('deviceId or Device is not exit');
+	        return;
+	      }
+	      var device = this._devices[deviceId];
+	      device.emit(_enum.deviceEvent.PROBE, {
+	        type: 'datapoint',
+	        data: data,
+	        deviceId: deviceId
+	      });
+	    }
+
+	    // 返回设备日志
+
+	  }, {
+	    key: '_log',
+	    value: function _log(deviceId) {
+	      var _this5 = this;
+
+	      if (!deviceId || !this._devices[deviceId]) {
+	        console.error('deviceId or Device is not exit');
+	        return;
+	      }
+	      var topic = _enum.subscribeType['log'];
+	      if (this._devices[deviceId] && !this._devices[deviceId][topic]) {
+	        this._client.subscribe(topic + '/' + deviceId).then(function () {
+	          // 1.写进事件,方便全局调用获取
+	          _this5._writeEvent(topic, deviceId, function (data) {
+	            _this5._logEvent(data, deviceId);
+	          });
+	        }, function (err) {
+	          // 订阅失败
+	          if (_this5._devices && _this5._devices[deviceId]) {
+	            console.error('Device[' + deviceId + '] fetch logs error');
+	            _this5._devices[deviceId].emit(_enum.deviceEvent.ERROR, err);
+	          }
+	        });
+	      }
+	    }
+
+	    // 设备日志event
+
+	  }, {
+	    key: '_logEvent',
+	    value: function _logEvent(data, deviceId) {
+	      if (!deviceId || !this._devices[deviceId]) {
+	        console.error('deviceId or Device is not exit');
+	        return;
+	      }
+	      var device = this._devices[deviceId];
+	      device.emit(_enum.deviceEvent.LOG, {
+	        data: data,
+	        deviceId: deviceId
+	      });
+
+	      // 设备上下线
+	      if (data.type === 1) {
+	        device.emit(_enum.deviceEvent.STATUSCHANGE, deviceStatus.ONLINE);
+	      } else if (data.type === 2) {
+	        device.emit(_enum.deviceEvent.STATUSCHANGE, deviceStatus.OFFLINE);
+	      }
+	    }
+
+	    // 发送数据端点
+
+	  }, {
+	    key: '_sendData',
+	    value: function _sendData(deviceId, data, callback) {
+	      var _this6 = this;
+
+	      if (!this._client || !this._xsdk) {
+	        console.error('xsdk or client not init');
+	        throw new Error('xsdk not init');
+	      }
+	      if (!(0, _lang.isPlainObject)(data) && (0, _lang.isArray)(data.data)) {
+	        console.error('params error');
+	        throw new Error('params error');
+	      }
+
+	      if (data.type === 'datapoint' && (0, _lang.isArray)(data.data)) {
+	        // 设置数据端点
+	        // 订阅发送数据端点
+	        var topic = _enum.subscribeType['setPoint'];
+	        if (this._devices[deviceId] && !this._devices[deviceId][topic]) {
+	          this._client.subscribe(topic + '/' + deviceId).then(function () {
+	            // 写进事件,方便全局调用获取
+	            _this6._writeEvent(topic, deviceId, function (res) {
+	              if (callback && (0, _lang.isFunction)(callback)) {
+	                res.deviceId = deviceId;
+	                callback(res);
+	              }
+	            });
+
+	            // 发送数据端点
+	            _this6._sendMessage({
+	              topic: 'setPoint',
+	              deviceId: deviceId,
+	              data: data.data
+	            });
+	          }, function (err) {
+	            // 订阅失败
+	            console.error('Device[' + deviceId + '] send datapoint error');
+	            if (_this6._devices && _this6._devices[deviceId]) {
+	              _this6._devices[deviceId].emit(_enum.deviceEvent.ERROR, err);
+	            }
+	          });
+	        } else {
+	          // 自动覆盖事件
+	          this._writeEvent(topic, deviceId, function (res) {
+	            if (callback && (0, _lang.isFunction)(callback)) {
+	              res.deviceId = deviceId;
+	              callback(res);
+	            }
+	          });
+
+	          // 发送数据端点
+	          this._sendMessage({
+	            topic: 'setPoint',
+	            deviceId: deviceId,
+	            data: data.data
+	          });
+	        }
+	      }
+	    }
+
+	    /**
+	     * 订阅主题，并且做处理
+	     * 设备上报数据端点
+	     */
+
+	  }, {
+	    key: 'deviceSubscribe',
+	    value: function deviceSubscribe(deviceId) {
+	      var _this7 = this;
+
+	      if (!this._xsdk || !deviceId) return console.error('xsdk or deviceId not exit');
+	      var topic = _enum.subscribeType['sync'];
+	      if (this._devices[deviceId] && !this._devices[deviceId][topic]) {
+	        this._client.subscribe(topic + '/' + deviceId).then(function () {
+	          // 1.写进事件,方便全局调用获取
+	          _this7._writeEvent(topic, deviceId, function (data) {
+	            // data是返回的数据
+	            _this7._pipeRecv(data, deviceId);
+	          });
+	        }, function (err) {
+	          // 订阅失败
+	          console.error('Device[' + deviceId + '] update sync datapoint error');
+	          if (_this7._devices && _this7._devices[deviceId]) {
+	            _this7._devices[deviceId].emit(_enum.deviceEvent.ERROR, err);
+	          }
+	        });
+	      }
+	    }
+
+	    /**
+	    * 应用通知事件
+	    */
+
+	  }, {
+	    key: 'eventnotify',
+	    value: function eventnotify() {
+	      if (!this._xsdk) return console.error('xsdk not exit');
+	      var topic = _enum.subscribeType['notifyEvent'];
+	      this._client.subscribe(topic + '/' + this.option.userid).then(function () {}, function (err) {
+	        // 订阅失败
+	        console.error('subscribe event Notify is error');
+	      });
+	    }
+	  }]);
+
+	  return V5;
+	}();
+
+	exports.default = V5;
 
 /***/ }),
 /* 67 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	(function(){
+	  var crypt = __webpack_require__(68),
+	      utf8 = __webpack_require__(69).utf8,
+	      isBuffer = __webpack_require__(70),
+	      bin = __webpack_require__(69).bin,
+
+	  // The core
+	  md5 = function (message, options) {
+	    // Convert to byte array
+	    if (message.constructor == String)
+	      if (options && options.encoding === 'binary')
+	        message = bin.stringToBytes(message);
+	      else
+	        message = utf8.stringToBytes(message);
+	    else if (isBuffer(message))
+	      message = Array.prototype.slice.call(message, 0);
+	    else if (!Array.isArray(message))
+	      message = message.toString();
+	    // else, assume byte array already
+
+	    var m = crypt.bytesToWords(message),
+	        l = message.length * 8,
+	        a =  1732584193,
+	        b = -271733879,
+	        c = -1732584194,
+	        d =  271733878;
+
+	    // Swap endian
+	    for (var i = 0; i < m.length; i++) {
+	      m[i] = ((m[i] <<  8) | (m[i] >>> 24)) & 0x00FF00FF |
+	             ((m[i] << 24) | (m[i] >>>  8)) & 0xFF00FF00;
+	    }
+
+	    // Padding
+	    m[l >>> 5] |= 0x80 << (l % 32);
+	    m[(((l + 64) >>> 9) << 4) + 14] = l;
+
+	    // Method shortcuts
+	    var FF = md5._ff,
+	        GG = md5._gg,
+	        HH = md5._hh,
+	        II = md5._ii;
+
+	    for (var i = 0; i < m.length; i += 16) {
+
+	      var aa = a,
+	          bb = b,
+	          cc = c,
+	          dd = d;
+
+	      a = FF(a, b, c, d, m[i+ 0],  7, -680876936);
+	      d = FF(d, a, b, c, m[i+ 1], 12, -389564586);
+	      c = FF(c, d, a, b, m[i+ 2], 17,  606105819);
+	      b = FF(b, c, d, a, m[i+ 3], 22, -1044525330);
+	      a = FF(a, b, c, d, m[i+ 4],  7, -176418897);
+	      d = FF(d, a, b, c, m[i+ 5], 12,  1200080426);
+	      c = FF(c, d, a, b, m[i+ 6], 17, -1473231341);
+	      b = FF(b, c, d, a, m[i+ 7], 22, -45705983);
+	      a = FF(a, b, c, d, m[i+ 8],  7,  1770035416);
+	      d = FF(d, a, b, c, m[i+ 9], 12, -1958414417);
+	      c = FF(c, d, a, b, m[i+10], 17, -42063);
+	      b = FF(b, c, d, a, m[i+11], 22, -1990404162);
+	      a = FF(a, b, c, d, m[i+12],  7,  1804603682);
+	      d = FF(d, a, b, c, m[i+13], 12, -40341101);
+	      c = FF(c, d, a, b, m[i+14], 17, -1502002290);
+	      b = FF(b, c, d, a, m[i+15], 22,  1236535329);
+
+	      a = GG(a, b, c, d, m[i+ 1],  5, -165796510);
+	      d = GG(d, a, b, c, m[i+ 6],  9, -1069501632);
+	      c = GG(c, d, a, b, m[i+11], 14,  643717713);
+	      b = GG(b, c, d, a, m[i+ 0], 20, -373897302);
+	      a = GG(a, b, c, d, m[i+ 5],  5, -701558691);
+	      d = GG(d, a, b, c, m[i+10],  9,  38016083);
+	      c = GG(c, d, a, b, m[i+15], 14, -660478335);
+	      b = GG(b, c, d, a, m[i+ 4], 20, -405537848);
+	      a = GG(a, b, c, d, m[i+ 9],  5,  568446438);
+	      d = GG(d, a, b, c, m[i+14],  9, -1019803690);
+	      c = GG(c, d, a, b, m[i+ 3], 14, -187363961);
+	      b = GG(b, c, d, a, m[i+ 8], 20,  1163531501);
+	      a = GG(a, b, c, d, m[i+13],  5, -1444681467);
+	      d = GG(d, a, b, c, m[i+ 2],  9, -51403784);
+	      c = GG(c, d, a, b, m[i+ 7], 14,  1735328473);
+	      b = GG(b, c, d, a, m[i+12], 20, -1926607734);
+
+	      a = HH(a, b, c, d, m[i+ 5],  4, -378558);
+	      d = HH(d, a, b, c, m[i+ 8], 11, -2022574463);
+	      c = HH(c, d, a, b, m[i+11], 16,  1839030562);
+	      b = HH(b, c, d, a, m[i+14], 23, -35309556);
+	      a = HH(a, b, c, d, m[i+ 1],  4, -1530992060);
+	      d = HH(d, a, b, c, m[i+ 4], 11,  1272893353);
+	      c = HH(c, d, a, b, m[i+ 7], 16, -155497632);
+	      b = HH(b, c, d, a, m[i+10], 23, -1094730640);
+	      a = HH(a, b, c, d, m[i+13],  4,  681279174);
+	      d = HH(d, a, b, c, m[i+ 0], 11, -358537222);
+	      c = HH(c, d, a, b, m[i+ 3], 16, -722521979);
+	      b = HH(b, c, d, a, m[i+ 6], 23,  76029189);
+	      a = HH(a, b, c, d, m[i+ 9],  4, -640364487);
+	      d = HH(d, a, b, c, m[i+12], 11, -421815835);
+	      c = HH(c, d, a, b, m[i+15], 16,  530742520);
+	      b = HH(b, c, d, a, m[i+ 2], 23, -995338651);
+
+	      a = II(a, b, c, d, m[i+ 0],  6, -198630844);
+	      d = II(d, a, b, c, m[i+ 7], 10,  1126891415);
+	      c = II(c, d, a, b, m[i+14], 15, -1416354905);
+	      b = II(b, c, d, a, m[i+ 5], 21, -57434055);
+	      a = II(a, b, c, d, m[i+12],  6,  1700485571);
+	      d = II(d, a, b, c, m[i+ 3], 10, -1894986606);
+	      c = II(c, d, a, b, m[i+10], 15, -1051523);
+	      b = II(b, c, d, a, m[i+ 1], 21, -2054922799);
+	      a = II(a, b, c, d, m[i+ 8],  6,  1873313359);
+	      d = II(d, a, b, c, m[i+15], 10, -30611744);
+	      c = II(c, d, a, b, m[i+ 6], 15, -1560198380);
+	      b = II(b, c, d, a, m[i+13], 21,  1309151649);
+	      a = II(a, b, c, d, m[i+ 4],  6, -145523070);
+	      d = II(d, a, b, c, m[i+11], 10, -1120210379);
+	      c = II(c, d, a, b, m[i+ 2], 15,  718787259);
+	      b = II(b, c, d, a, m[i+ 9], 21, -343485551);
+
+	      a = (a + aa) >>> 0;
+	      b = (b + bb) >>> 0;
+	      c = (c + cc) >>> 0;
+	      d = (d + dd) >>> 0;
+	    }
+
+	    return crypt.endian([a, b, c, d]);
+	  };
+
+	  // Auxiliary functions
+	  md5._ff  = function (a, b, c, d, x, s, t) {
+	    var n = a + (b & c | ~b & d) + (x >>> 0) + t;
+	    return ((n << s) | (n >>> (32 - s))) + b;
+	  };
+	  md5._gg  = function (a, b, c, d, x, s, t) {
+	    var n = a + (b & d | c & ~d) + (x >>> 0) + t;
+	    return ((n << s) | (n >>> (32 - s))) + b;
+	  };
+	  md5._hh  = function (a, b, c, d, x, s, t) {
+	    var n = a + (b ^ c ^ d) + (x >>> 0) + t;
+	    return ((n << s) | (n >>> (32 - s))) + b;
+	  };
+	  md5._ii  = function (a, b, c, d, x, s, t) {
+	    var n = a + (c ^ (b | ~d)) + (x >>> 0) + t;
+	    return ((n << s) | (n >>> (32 - s))) + b;
+	  };
+
+	  // Package private blocksize
+	  md5._blocksize = 16;
+	  md5._digestsize = 16;
+
+	  module.exports = function (message, options) {
+	    if (message === undefined || message === null)
+	      throw new Error('Illegal argument ' + message);
+
+	    var digestbytes = crypt.wordsToBytes(md5(message, options));
+	    return options && options.asBytes ? digestbytes :
+	        options && options.asString ? bin.bytesToString(digestbytes) :
+	        crypt.bytesToHex(digestbytes);
+	  };
+
+	})();
+
+
+/***/ }),
+/* 68 */
+/***/ (function(module, exports) {
+
+	(function() {
+	  var base64map
+	      = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
+
+	  crypt = {
+	    // Bit-wise rotation left
+	    rotl: function(n, b) {
+	      return (n << b) | (n >>> (32 - b));
+	    },
+
+	    // Bit-wise rotation right
+	    rotr: function(n, b) {
+	      return (n << (32 - b)) | (n >>> b);
+	    },
+
+	    // Swap big-endian to little-endian and vice versa
+	    endian: function(n) {
+	      // If number given, swap endian
+	      if (n.constructor == Number) {
+	        return crypt.rotl(n, 8) & 0x00FF00FF | crypt.rotl(n, 24) & 0xFF00FF00;
+	      }
+
+	      // Else, assume array and swap all items
+	      for (var i = 0; i < n.length; i++)
+	        n[i] = crypt.endian(n[i]);
+	      return n;
+	    },
+
+	    // Generate an array of any length of random bytes
+	    randomBytes: function(n) {
+	      for (var bytes = []; n > 0; n--)
+	        bytes.push(Math.floor(Math.random() * 256));
+	      return bytes;
+	    },
+
+	    // Convert a byte array to big-endian 32-bit words
+	    bytesToWords: function(bytes) {
+	      for (var words = [], i = 0, b = 0; i < bytes.length; i++, b += 8)
+	        words[b >>> 5] |= bytes[i] << (24 - b % 32);
+	      return words;
+	    },
+
+	    // Convert big-endian 32-bit words to a byte array
+	    wordsToBytes: function(words) {
+	      for (var bytes = [], b = 0; b < words.length * 32; b += 8)
+	        bytes.push((words[b >>> 5] >>> (24 - b % 32)) & 0xFF);
+	      return bytes;
+	    },
+
+	    // Convert a byte array to a hex string
+	    bytesToHex: function(bytes) {
+	      for (var hex = [], i = 0; i < bytes.length; i++) {
+	        hex.push((bytes[i] >>> 4).toString(16));
+	        hex.push((bytes[i] & 0xF).toString(16));
+	      }
+	      return hex.join('');
+	    },
+
+	    // Convert a hex string to a byte array
+	    hexToBytes: function(hex) {
+	      for (var bytes = [], c = 0; c < hex.length; c += 2)
+	        bytes.push(parseInt(hex.substr(c, 2), 16));
+	      return bytes;
+	    },
+
+	    // Convert a byte array to a base-64 string
+	    bytesToBase64: function(bytes) {
+	      for (var base64 = [], i = 0; i < bytes.length; i += 3) {
+	        var triplet = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
+	        for (var j = 0; j < 4; j++)
+	          if (i * 8 + j * 6 <= bytes.length * 8)
+	            base64.push(base64map.charAt((triplet >>> 6 * (3 - j)) & 0x3F));
+	          else
+	            base64.push('=');
+	      }
+	      return base64.join('');
+	    },
+
+	    // Convert a base-64 string to a byte array
+	    base64ToBytes: function(base64) {
+	      // Remove non-base-64 characters
+	      base64 = base64.replace(/[^A-Z0-9+\/]/ig, '');
+
+	      for (var bytes = [], i = 0, imod4 = 0; i < base64.length;
+	          imod4 = ++i % 4) {
+	        if (imod4 == 0) continue;
+	        bytes.push(((base64map.indexOf(base64.charAt(i - 1))
+	            & (Math.pow(2, -2 * imod4 + 8) - 1)) << (imod4 * 2))
+	            | (base64map.indexOf(base64.charAt(i)) >>> (6 - imod4 * 2)));
+	      }
+	      return bytes;
+	    }
+	  };
+
+	  module.exports = crypt;
+	})();
+
+
+/***/ }),
+/* 69 */
+/***/ (function(module, exports) {
+
+	var charenc = {
+	  // UTF-8 encoding
+	  utf8: {
+	    // Convert a string to a byte array
+	    stringToBytes: function(str) {
+	      return charenc.bin.stringToBytes(unescape(encodeURIComponent(str)));
+	    },
+
+	    // Convert a byte array to a string
+	    bytesToString: function(bytes) {
+	      return decodeURIComponent(escape(charenc.bin.bytesToString(bytes)));
+	    }
+	  },
+
+	  // Binary encoding
+	  bin: {
+	    // Convert a string to a byte array
+	    stringToBytes: function(str) {
+	      for (var bytes = [], i = 0; i < str.length; i++)
+	        bytes.push(str.charCodeAt(i) & 0xFF);
+	      return bytes;
+	    },
+
+	    // Convert a byte array to a string
+	    bytesToString: function(bytes) {
+	      for (var str = [], i = 0; i < bytes.length; i++)
+	        str.push(String.fromCharCode(bytes[i]));
+	      return str.join('');
+	    }
+	  }
+	};
+
+	module.exports = charenc;
+
+
+/***/ }),
+/* 70 */
+/***/ (function(module, exports) {
+
+	/*!
+	 * Determine if an object is a Buffer
+	 *
+	 * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
+	 * @license  MIT
+	 */
+
+	// The _isBuffer check is for Safari 5-7 support, because it's missing
+	// Object.prototype.constructor. Remove this eventually
+	module.exports = function (obj) {
+	  return obj != null && (isBuffer(obj) || isSlowBuffer(obj) || !!obj._isBuffer)
+	}
+
+	function isBuffer (obj) {
+	  return !!obj.constructor && typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
+	}
+
+	// For Node v0.10 support. Remove this eventually.
+	function isSlowBuffer (obj) {
+	  return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
+	}
+
+
+/***/ }),
+/* 71 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.syncDatapoints = syncDatapoints;
+	exports.getDataPointResult = getDataPointResult;
+	exports.getPropeDataPointResult = getPropeDataPointResult;
+	exports.setDataPointResult = setDataPointResult;
+	exports.notifyEvent = notifyEvent;
+	exports.systemEvent = systemEvent;
+	exports.log = log;
+	exports.getDataPoint = getDataPoint;
+	exports.getPropeDataPoint = getPropeDataPoint;
+	exports.setDataPointArray = setDataPointArray;
+	exports.setDeviceOffline = setDeviceOffline;
+
+	var _pad = __webpack_require__(72);
+
+	var _lang = __webpack_require__(60);
+
+	/**
+	 * 同步数据端点,设备上报数据端点
+	 * @param  {Array} bytes 字节数组
+	 */
+	function syncDatapoints(bytes) {
+	  // 第5位为数据端点上报标识位，占一个字节
+	  var flag = (0, _pad.pad)(bytes[4].toString(2), 8);
+	  var index = 5;
+
+	  // 数据端点上报标识位最高位为设备名称标识
+	  if (flag[0] === '1') {
+	    console.log('设备端点标识');
+	    // 其他字节的前两位表示设备名称长度(两个字节)
+	    // let nameLen = _bytesToInt(bytes.splice(4, 6))
+	    var nameLen = (0, _pad._bytesToInt)(bytes.slice(5, 7));
+
+	    index += nameLen + 2;
+	  }
+
+	  if (flag[4] === '1') {
+	    // 时间戳占8位
+	    // let timestamp = this._bytesToTimestamp(bytes.slice(index, index + 8))
+	    index += 8;
+	  }
+
+	  var datapointBytes = bytes.slice(index);
+	  var i = 0;
+	  var datapointArr = [];
+
+	  var _loop = function _loop() {
+	    // 1.获取数据端点的索引
+	    var datapointIndex = datapointBytes[i];
+	    var arr = [];
+	    // 2.获取两个字节，得到数据端点的类型和数据端点的长度
+	    datapointBytes.slice(i + 1, i + 3).forEach(function (item) {
+	      arr.push((0, _pad.pad)(item.toString(2), 8));
+	    });
+	    var str = arr.join('');
+	    var type = parseInt(str.slice(0, 4), 2);
+	    var len = parseInt(str.slice(4), 2);
+	    // 3.拿到数据端点内容
+	    var value = datapointBytes.slice(i + 3, i + 3 + len);
+	    switch (type) {
+	      case 9:
+	        // 字符串
+	        value = (0, _pad._bytesToString)(value);
+	        break;
+	      case 10:
+	        // 字节数组转16进制
+	        value = (0, _pad._bytesToHex)(value);
+	        break;
+	      case 7:
+	        // 浮点数
+	        value = (0, _pad._bytesToFloat)(value);
+	        break;
+	      default:
+	        // 整型
+	        value = (0, _pad._bytesToNum)(value, type);
+	    }
+
+	    datapointArr.push({
+	      index: datapointIndex,
+	      value: value,
+	      type: _pad.dataPointType[type] || type
+	    });
+	    i = i + len + 3;
+	  };
+
+	  while (i < datapointBytes.length) {
+	    _loop();
+	  }
+	  return datapointArr;
+	}
+
+	/**
+	 * 应用获取数据端点结果
+	 * @param  {Array} bytes 字节数组
+	 */
+	function getDataPointResult(bytes) {
+	  // 服务不可用，获取失败，返回不附带Datapoint Flag、Datapoint Value
+	  if (bytes[6] === 1) {
+	    return;
+	  }
+	  // 第7位为数据端点上报标识位，占一个字节
+	  var flag = (0, _pad.pad)(bytes[7].toString(2), 8);
+	  var index = 8;
+
+	  // 数据端点上报标识位最高位为设备名称标识
+	  if (flag[0] === '1') {
+	    // 其他字节的前两位表示设备名称长度(两个字节)
+	    var nameLen = (0, _pad._bytesToInt)(bytes.slice(8, 10));
+	    index += nameLen + 2;
+	  }
+
+	  // 判断是否有数据端点
+	  if (flag[1] === 0) {
+	    return [];
+	  }
+
+	  var datapointBytes = bytes.slice(index);
+	  var i = 0;
+	  var datapointArr = [];
+
+	  var _loop2 = function _loop2() {
+	    var datapointIndex = datapointBytes[i];
+	    var arr = [];
+	    datapointBytes.slice(i + 1, i + 3).forEach(function (item) {
+	      arr.push((0, _pad.pad)(item.toString(2), 8));
+	    });
+	    var str = arr.join('');
+	    var type = parseInt(str.slice(0, 4), 2);
+	    var len = parseInt(str.slice(4), 2);
+	    var value = datapointBytes.slice(i + 3, i + 3 + len);
+	    switch (type) {
+	      case 9:
+	        // 字符串
+	        value = (0, _pad._bytesToString)(value);
+	        break;
+	      case 10:
+	        // 字节数组
+	        value = (0, _pad._bytesToHex)(value);
+	        break;
+	      case 7:
+	        // 浮点数
+	        value = (0, _pad._bytesToFloat)(value);
+	        break;
+	      default:
+	        value = (0, _pad._bytesToNum)(value, type);
+	    }
+
+	    datapointArr.push({
+	      index: datapointIndex,
+	      value: value,
+	      type: _pad.dataPointType[type] || type
+	    });
+	    i = i + len + 3;
+	  };
+
+	  while (i < datapointBytes.length) {
+	    _loop2();
+	  }
+	  return datapointArr;
+	}
+
+	/**
+	 * 应用获取数据端点结果(v6 prope协议)
+	 * @param  {Array} bytes 字节数组
+	 */
+	function getPropeDataPointResult(bytes) {
+	  // 应用获取数据端点标志位（Probe Flag）
+	  var flag = (0, _pad.pad)(bytes[6].toString(2), 8);
+	  var index = 7;
+
+	  // 数据端点上报标识位最高位为设备名称标识
+	  if (flag[1] === '1') {
+	    index += 8;
+	  }
+
+	  // 判断是否有数据端点
+	  if (flag[0] === '0') {
+	    return [];
+	  }
+
+	  var datapointBytes = bytes.slice(index);
+	  var i = 0;
+	  var datapointArr = [];
+
+	  var _loop3 = function _loop3() {
+	    var datapointIndex = datapointBytes[i];
+	    var arr = [];
+	    datapointBytes.slice(i + 1, i + 3).forEach(function (item) {
+	      arr.push((0, _pad.pad)(item.toString(2), 8));
+	    });
+	    var str = arr.join('');
+	    var type = parseInt(str.slice(0, 4), 2);
+	    var len = parseInt(str.slice(4), 2);
+	    var value = datapointBytes.slice(i + 3, i + 3 + len);
+	    switch (type) {
+	      case 9:
+	        // 字符串
+	        value = (0, _pad._bytesToString)(value);
+	        break;
+	      case 10:
+	        // 字节数组
+	        value = (0, _pad._bytesToHex)(value);
+	        break;
+	      case 7:
+	        // 浮点数
+	        value = (0, _pad._bytesToFloat)(value);
+	        break;
+	      default:
+	        value = (0, _pad._bytesToNum)(value, type);
+	    }
+
+	    datapointArr.push({
+	      index: datapointIndex,
+	      value: value,
+	      type: _pad.dataPointType[type] || type
+	    });
+	    i = i + len + 3;
+	  };
+
+	  while (i < datapointBytes.length) {
+	    _loop3();
+	  }
+	  return datapointArr;
+	}
+
+	/**
+	 * 处理数据端点设置，应用设置数据端点
+	 * @param  {Array} bytes 字节数组
+	 */
+	function setDataPointResult(bytes) {
+	  var result = {
+	    '0': {
+	      status: 0,
+	      msg: 'datapoint set successfully'
+	    },
+	    '1': {
+	      status: 1,
+	      msg: 'datapoint Setup failed'
+	    },
+	    '2': {
+	      status: 2,
+	      msg: 'no set permissions are granted'
+	    }
+	  };
+	  return result[bytes[6]] || bytes[6];
+	}
+
+	/**
+	 * 应用通知事件
+	 * @param  {Array} bytes 字节数组
+	 */
+	function notifyEvent(bytes) {
+	  var source = {
+	    '1': 'event from server',
+	    '2': 'event from device',
+	    '3': 'event form app'
+	  };
+	  var eventSource = source[bytes[4]] || bytes[4] || '';
+	  var result = {
+	    '1': {
+	      status: 1,
+	      msg: '设备通知,数据端点变化通知'
+	    },
+	    '2': {
+	      status: 2,
+	      msg: '设备告警，数据端点变化引起的告警'
+	    },
+	    '3': {
+	      status: 3,
+	      msg: '设备分享，设备管理员发出的分享'
+	    },
+	    '4': {
+	      status: 4,
+	      msg: '消息广播推送'
+	    },
+	    '5': {
+	      status: 5,
+	      msg: '设备属性变化通知'
+	    },
+	    '6': {
+	      status: 6,
+	      msg: '设备与用户订阅关系变化通知'
+	    },
+	    '7': {
+	      status: 7,
+	      msg: '设备在线状态变化通知'
+	    },
+	    '8': {
+	      status: 8,
+	      msg: '设备在线状态告警'
+	    },
+	    '9': {
+	      status: 9,
+	      msg: '家庭消息通知，留言板消息'
+	    },
+	    '10': {
+	      status: 10,
+	      msg: '家庭邀请通知'
+	    },
+	    '11': {
+	      status: 11,
+	      msg: '家庭设备权限变化'
+	    },
+	    '12': {
+	      status: 12,
+	      msg: '家庭成员变化'
+	    },
+	    '13': {
+	      status: 13,
+	      msg: '家庭设备变化'
+	    }
+	  };
+	  var type = (0, _pad._bytesToInt)(bytes.slice(9, 11));
+	  var deviceId = (0, _pad._bytesToInt)(bytes.slice(5, 9));
+	  var message = (0, _pad._bytesToString)(bytes.slice(12));
+	  var response = result[type] || {};
+	  response.source = eventSource;
+	  return Object.assign({}, response, {
+	    deviceId: deviceId,
+	    message: message
+	  });
+	}
+
+	/**
+	 * 系统事件
+	 * @param  {Array} bytes 字节数组
+	 */
+	function systemEvent(bytes) {
+	  var result = {
+	    '1': {
+	      status: 1,
+	      msg: '升级指令'
+	    },
+	    '2': {
+	      status: 2,
+	      msg: '升级完成'
+	    },
+	    '3': {
+	      status: 3,
+	      msg: '请求服务器时间'
+	    },
+	    '4': {
+	      status: 4,
+	      msg: '服务器时间应答'
+	    },
+	    '5': {
+	      status: 5,
+	      msg: '强制踢下线'
+	    }
+	  };
+	  var type = (0, _pad._bytesToInt)(bytes.slice(4, 6));
+	  return result[type] || type;
+	}
+
+	/**
+	 * 写入设备日志
+	 * @param  {Array} bytes 字节数组
+	 */
+	function log(bytes) {
+	  // [0, 20, 0, 35, 0, 3, 89, 220, 55, 43, 0, 27, 54, 55, 50, 57, 56, 52, 51, 48, 53, 35, 46, 35, 70, 48, 70, 69, 54, 66, 55, 57, 50, 54, 52, 57, 35, 46, 35]
+	  // 11点左右
+	  // [0, 20, 0, 35, 0, 3, 89, 220, 55, 217, 0, 27, 54, 55, 50, 57, 56, 52, 51, 48, 53, 35, 46, 35, 70, 48, 70, 69, 54, 66, 55, 57, 50, 54, 52, 57, 35, 46, 35]
+	  // 第5到第6位为日志等级和日志内容，需要转成16进制，拼成字符串再转回10进制
+	  var arr = [];
+	  bytes.slice(4, 6).forEach(function (item) {
+	    arr.push((0, _pad.pad)(item.toString(2), 8));
+	  });
+	  var str = arr.join('');
+	  var level = parseInt(str.slice(0, 4), 2);
+	  var type = parseInt(str.slice(4), 2);
+
+	  // 第7到第14位为时间戳
+	  var timestamp = (0, _pad._bytesToTimestamp)(bytes.slice(6, 14));
+
+	  var msgArr = (0, _pad._bytesToString)(bytes.slice(16)).split('#.#');
+
+	  return {
+	    timestamp: timestamp,
+	    level: level,
+	    type: type,
+	    msg: (0, _pad.msgText)(type, msgArr)
+	  };
+	}
+
+	/**
+	 * ********************************************app发起的行为*****************************************************
+	 * */
+
+	/**
+	 * 获取数据端点
+	 * @export
+	 * @param {any} msgId
+	 * @returns {any} msgId
+	 */
+	function getDataPoint(msgId) {
+	  // 7个固定的数据长度
+	  var b = new ArrayBuffer(7);
+	  var v1 = new Uint8Array(b);
+	  var len = (0, _pad.pad)(3 .toString(2), 16);
+	  /*
+	   * arraybufferArray（用整型存储）
+	   * 数据包类型，用两个字节来存储
+	   * 0： 默认0
+	   * 1： 默认为7
+	   *
+	   * 数据包长度，就是内存的字节数，用两个字节来存储
+	   * 2：数据包高位
+	   * 3：数据包低位
+	   *
+	   * messageID
+	   * 4：message高位
+	   * 5：message低位
+	   *
+	   * 标志位
+	   * 6
+	   *
+	   * 数据包内容
+	   * 7 数据端点索引
+	   * 8  前四位代表type类型
+	   * 9：后12位代表数据内容的长度（字节）
+	   * 10 数据包内容
+	   */
+	  v1[0] = 0;
+	  v1[1] = 9;
+	  v1[2] = parseInt(len.slice(0, 8), 2);
+	  v1[3] = parseInt(len.slice(8, 16), 2);
+	  v1[4] = 0;
+	  v1[5] = msgId++;
+	  v1[6] = parseInt('10000000', 2);
+	  // 把内存发过去
+	  return {
+	    b: b,
+	    msgId: msgId
+	  };
+	}
+
+	/**
+	 * 获取数据端点(v6 prope协议)
+	 * @export
+	 * @param {array} array 数据索引的列表
+	 * @param {any} msgId
+	 * @returns {any} msgId
+	 */
+	function getPropeDataPoint() {
+	  var array = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+	  var msgId = arguments[1];
+
+	  var dataPointLen = array.length;
+	  var b = new ArrayBuffer(8 + dataPointLen);
+	  var v1 = new Uint8Array(b);
+	  // 数据包的长度
+	  var len = (0, _pad.pad)((4 + dataPointLen).toString(2), 16);
+	  /*
+	   * arraybufferArray（用整型存储）
+	   * 数据包类型，用两个字节来存储
+	   * 0： 默认0
+	   * 1： 默认为7
+	   *
+	   * 数据包长度，就是内存的字节数，用两个字节来存储
+	   * 2：数据包高位
+	   * 3：数据包低位
+	   *
+	   * messageID
+	   * 4：message高位
+	   * 5：message低位
+	   *
+	   * 标志位
+	   * 6
+	   *
+	   * 数据包内容
+	   * 7 数据端点索引
+	   * 8  前四位代表type类型
+	   * 9：后12位代表数据内容的长度（字节）
+	   * 10 数据包内容
+	   */
+	  v1[0] = 0;
+	  v1[1] = 32;
+	  v1[2] = parseInt(len.slice(0, 8), 2);
+	  v1[3] = parseInt(len.slice(8, 16), 2);
+	  v1[4] = 0;
+	  v1[5] = msgId++;
+	  v1[6] = parseInt('10000000', 2);
+	  v1[7] = dataPointLen;
+	  array.forEach(function (item, index) {
+	    v1[8 + index] = parseInt(item);
+	  });
+	  // 把内存发过去
+	  return {
+	    b: b,
+	    msgId: msgId
+	  };
+	}
+
+	/**
+	 * 设置数据端点数组类型
+	 * @export
+	 * @param {Array} array
+	 * @param {Number} msgId
+	 * @returns
+	 */
+	function setDataPointArray(array, msgId) {
+	  // 后端定义的数据端点类型值跟硬件定义不一样，需要做个映射
+	  var arrlen = 0;
+	  var arr = [];
+	  array.forEach(function (item) {
+	    arr.push((0, _lang.clone)(item));
+	  });
+	  arr.forEach(function (dp, index) {
+	    var datapoint = {
+	      '1': { // 布尔类型
+	        type: 0,
+	        len: 1
+	      },
+	      '2': { // 单字节(无符号)
+	        type: 0,
+	        len: 1
+	      },
+	      '3': { // 16位短整型(有符号)
+	        type: 1,
+	        len: 2
+	      },
+	      '4': { // 32位整型(有符号)
+	        type: 3,
+	        len: 4
+	      },
+	      '5': { // 浮点
+	        type: 7,
+	        len: 4
+	      },
+	      '6': { // 字符串
+	        type: 9
+	      },
+	      '7': { // 字节数组
+	        type: 10
+	      },
+	      '8': { // 16位短整型(无符号)
+	        type: 2,
+	        len: 2
+	      },
+	      '9': { // 32位整型(无符号)
+	        type: 4,
+	        len: 4
+	      }
+	    }[dp.type];
+
+	    if (dp.type === 1) {
+	      // 布尔值转换成0和1
+	      arr[index].value = dp.value ? 1 : 0;
+	    }
+
+	    var valLen = datapoint.len || dp.value.length;
+
+	    if (datapoint.type === 9) {
+	      // 字符串的长度
+	      valLen = (0, _pad._stringToBytes)(dp.value).length;
+	    } else if (datapoint.type === 10) {
+	      // 字节数组
+	      valLen = Math.ceil(dp.value.length / 2);
+	    }
+	    // 存储有用的数据（index, value, type,valLen）
+	    arr[index].valLen = valLen;
+	    arr[index].type = datapoint.type;
+	    // 获取整个端点数组的长度
+	    arrlen += valLen;
+	    arrlen += 3;
+	  });
+
+	  // 7个固定的数据端点长度，arrlen数据的长度，其中字节数组和字符串数组不确定
+	  var b = new ArrayBuffer(7 + arrlen);
+	  var v1 = new Int8Array(b);
+	  // 数据内容arrlen + 数据包实体内容3
+	  var len = (0, _pad.pad)((arrlen + 3).toString(2), 16);
+
+	  /*
+	   * arraybufferArray（用整型存储）
+	   * 数据包类型，用两个字节来存储
+	   * 0： 默认0
+	   * 1： 默认为7
+	   *
+	   * 数据包长度，就是内存的字节数，用两个字节来存储
+	   * 2：数据包低位
+	   * 3：数据包高位
+	   *
+	   * messageID
+	   * 4：message高位（一般不超过255，所有默认为0）
+	   * 5：message低位
+	   *
+	   * 标志位
+	   * 6 一般默认没有设备名称选项
+	   *
+	   * 数据端点内容
+	   * 7 数据端点索引
+	   * 8  前四位代表type类型
+	   * 9：后12位代表数据内容的长度（字节）
+	   * 10 数据包内容（n个字节）
+	   */
+	  v1[0] = 0;
+	  v1[1] = 7;
+	  v1[2] = parseInt(len.slice(0, 8), 2);
+	  v1[3] = parseInt(len.slice(8, 16), 2);
+	  v1[4] = 0;
+	  v1[5] = msgId++;
+	  v1[6] = parseInt('01100000', 2);
+	  var i = 7;
+	  arr.forEach(function (dp) {
+	    // 每位数据端点的内容以及索引，长度
+	    v1[i] = dp.index;
+	    var bin = '' + (0, _pad.pad)(dp.type.toString(2), 4) + (0, _pad.pad)(dp.valLen.toString(2), 12);
+	    v1[i + 1] = parseInt(bin.slice(0, 8), 2);
+	    v1[i + 2] = parseInt(bin.slice(8, 16), 2);
+	    // 从buffer的第十位开始创建一个新的进制存到内存（以大端字节方式写入）
+	    var v2 = new DataView(b, i + 3, dp.valLen);
+	    switch (dp.type) {
+	      case 0:
+	        v2.setUint8(0, dp.value, false);
+	        break;
+	      case 1:
+	        v2.setInt16(0, dp.value, false);
+	        break;
+	      case 2:
+	        v2.setUint16(0, dp.value, false);
+	        break;
+	      case 3:
+	        v2.setInt32(0, dp.value, false);
+	        break;
+	      case 4:
+	        v2.setUint32(0, dp.value, false);
+	        break;
+	      case 7:
+	        v2.setFloat32(0, dp.value, false);
+	        break;
+	      // 字符串
+	      case 9:
+	        var s = (0, _pad._stringToBytes)(dp.value);
+	        s.forEach(function (item, index) {
+	          v2.setUint8(index, item, false);
+	        });
+	        break;
+	      // 字节数组
+	      case 10:
+	        // 一个字节存储两个字节数组的量（以16进制的方式）
+	        for (var _i = 0; _i < dp.valLen; _i++) {
+	          var str = (0, _pad.pad)(dp.value.slice(_i * 2, (_i + 1) * 2), 2);
+	          v2.setInt8(_i, parseInt(str, 16), false);
+	        }
+	        break;
+	      default:
+	    }
+	    i = i + 3 + dp.valLen;
+	  });
+	  // 把内存发过去
+	  return {
+	    b: b,
+	    msgId: msgId
+	  };
+	}
+
+	/**
+	 * 设备下线
+	 * @export
+	 * @returns
+	 */
+	function setDeviceOffline() {
+	  var b = new ArrayBuffer(4);
+	  var v1 = new Int8Array(b);
+	  v1[0] = 0;
+	  v1[1] = 11;
+	  v1[2] = 0;
+	  v1[3] = 4;
+	  return b;
+	}
+
+/***/ }),
+/* 72 */
+/***/ (function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.pad = pad;
+	exports._bytesToTimestamp = _bytesToTimestamp;
+	exports._bytesToInt = _bytesToInt;
+	exports._bytesToNum = _bytesToNum;
+	exports._bytesToFloat = _bytesToFloat;
+	exports._bytesToHex = _bytesToHex;
+	exports._bytesToString = _bytesToString;
+	exports._stringToBytes = _stringToBytes;
+	exports.msgText = msgText;
+	/**
+	 * 在前面补0
+	 * @param  {Number|String} num 需要补零的数字
+	 * @param  {Number} n   长度
+	 * @return {String}
+	 */
+	function pad(num, n) {
+	  var len = num.toString().length;
+	  while (len < n) {
+	    num = '0' + num;
+	    len++;
+	  }
+	  return num;
+	}
+
+	/**
+	 * 字节数组转时间戳，需要转成16进制，拼成字符串再转回10进制
+	 * @param  {Array}  bytes 字节数组
+	 * @param  {Boolean} ms 是否毫秒
+	 * @return {String}
+	 */
+	function _bytesToTimestamp(bytes) {
+	  var ms = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
+	  // let result = _bytesToInt(bytes)
+	  // return ms ? result * 1000 : result
+	  return _bytesToInt(bytes);
+	}
+
+	/**
+	 * 字节数组转数字
+	 * @param  {Array}  bytes 字节数组
+	 * @return {String}
+	 */
+	function _bytesToInt(bytes) {
+	  var arr = [];
+	  bytes.forEach(function (item) {
+	    arr.push(pad(item.toString(2), 8));
+	  });
+	  return parseInt(arr.join(''), 2);
+	}
+
+	/**
+	 * 字节数组转数字
+	 * @param  {Array}  bytes 字节数组
+	 * @return {String}
+	 */
+	function _bytesToNum(bytes, type) {
+	  var res = 0;
+	  var ab = void 0;
+	  var view = void 0;
+	  switch (type) {
+	    case 0:
+	      // 单字节
+	      res = bytes[0];
+	      break;
+	    case 1:
+	      // 16位有符号
+	      ab = new ArrayBuffer(2);
+	      view = new Int8Array(ab);
+	      view[1] = bytes[0];
+	      view[0] = bytes[1];
+	      var int16view = new Int16Array(ab);
+	      res = int16view[0];
+	      break;
+	    case 2:
+	      // 16位无符号
+	      ab = new ArrayBuffer(2);
+	      view = new Int8Array(ab);
+	      view[1] = bytes[0];
+	      view[0] = bytes[1];
+	      var uint16view = new Uint16Array(ab);
+	      res = uint16view[0];
+	      break;
+	    case 3:
+	      // 32位有符号
+	      ab = new ArrayBuffer(4);
+	      view = new Int8Array(ab);
+	      view[3] = bytes[0];
+	      view[2] = bytes[1];
+	      view[1] = bytes[2];
+	      view[0] = bytes[3];
+	      var int32view = new Int32Array(ab);
+	      res = int32view[0];
+	      break;
+	    case 4:
+	      // 32位无符号
+	      ab = new ArrayBuffer(4);
+	      view = new Int8Array(ab);
+	      view[3] = bytes[0];
+	      view[2] = bytes[1];
+	      view[1] = bytes[2];
+	      view[0] = bytes[3];
+	      var uint32view = new Uint32Array(ab);
+	      res = uint32view[0];
+	      break;
+	    default:
+	  }
+	  return res;
+	}
+
+	/**
+	 * 字节数组转浮点数
+	 * @param  {Array}  bytes 字节数组
+	 * @return {Number}
+	 */
+	function _bytesToFloat(bytes) {
+	  var arr = [];
+	  bytes.forEach(function (byte) {
+	    arr.push(pad(byte.toString(16), 2));
+	  });
+	  var a = arr.join('').match(/.{1,2}/g).map(function (num) {
+	    return parseInt(num, 16);
+	  }).reverse();
+	  var uint8Array = new Uint8Array(a).buffer;
+	  return new Float32Array(uint8Array)[0];
+	}
+
+	/**
+	 * 字节数组转十六进制
+	 * @param  {Array}  bytes 字节数组
+	 * @return {String}
+	 */
+	function _bytesToHex(bytes) {
+	  var arr = [];
+	  bytes.forEach(function (item) {
+	    arr.push(pad(item.toString(16), 2).toUpperCase());
+	  });
+	  return arr.join('');
+	}
+
+	/**
+	 * 字节数组转字符串
+	 * @param  {Array}  bytes 字节数组
+	 * @return {String}
+	 */
+	function _bytesToString(bytes) {
+	  // return String.fromCharCode.apply(null, bytes)
+	  var encodedString = String.fromCharCode.apply(null, bytes);
+	  var decodedString = decodeURIComponent(escape(encodedString));
+	  return decodedString;
+	}
+
+	/**
+	 * 字符串转字节数组
+	 * @param  {String}  str 字符串
+	 * @return {Array}
+	 */
+	function _stringToBytes(str) {
+	  str = unescape(encodeURIComponent(str));
+	  var charList = str.split('');
+	  var uintArray = [];
+	  for (var i = 0; i < charList.length; i++) {
+	    uintArray.push(charList[i].charCodeAt(0));
+	  }
+	  return uintArray;
+	}
+
+	/**
+	 * 消息文案
+	 * @param  {[type]} type 消息类型
+	 * @param  {[type]} msg  用于填充消息占位符的数组
+	 */
+	function msgText(type, msg) {
+	  var LOG_TEMPLATES = {
+	    '1': '设备[ID:{0}, MAC:{1}]上线了, 上线IP为:{2}',
+	    '2': '设备[ID:{0}, MAC:{1}]下线了',
+	    '3': '设备[ID:{0}, MAC:{1}]发送Ping',
+	    '4': '设备[ID:{0}, MAC:{1}]接收到设置数据端点指令',
+	    '5': '设备[ID:{0}, MAC:{1}]返回了设置数据端点指令, 设置返回码为{2}',
+	    '6': '设备[ID:{0}, MAC:{1}]接收了应用{2}的订阅请求',
+	    '7': '设备[ID:{0}, MAC:{1}]返回了应用{2}的订阅, 返回码为{3}',
+	    '8': '设备[ID:{0}, MAC:{1}]上报了数据端点,内容为:{2}',
+	    '9': '设备[ID:{0}, MAC:{1}]收到了通知',
+	    '10': '设备[ID:{0}, MAC:{1}]完成了升级, 版本由{2}升级到了{3}'
+	  };
+	  var template = LOG_TEMPLATES[type];
+	  if (!template) return '';
+	  return template.replace(/\{(\d)\}/g, function (match, p1) {
+	    return msg[p1];
+	  });
+	}
+
+	var dataPointType = exports.dataPointType = {
+	  '1': 3, // 16位短整型(有符号)
+	  '2': 8, // 16位短整型(无符号)
+	  '3': 4, // 32位整型(有符号)
+	  '4': 9, // 32位整型(无符号)
+	  '7': 5, // 浮点
+	  '9': 6, // 字符串
+	  '10': 7 // 字节数组
+	};
+
+/***/ }),
+/* 73 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _mqttws = __webpack_require__(74);
+
+	var _mqttws2 = _interopRequireDefault(_mqttws);
+
+	var _events = __webpack_require__(59);
+
+	var _events2 = _interopRequireDefault(_events);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var MQTT = function (_EventEmitter) {
+	  _inherits(MQTT, _EventEmitter);
+
+	  function MQTT(host, clientId) {
+	    _classCallCheck(this, MQTT);
+
+	    var _this = _possibleConstructorReturn(this, (MQTT.__proto__ || Object.getPrototypeOf(MQTT)).call(this));
+
+	    if (!host || !clientId) {
+	      console.error('host or clientId do not exsit');
+	      throw new Error('host or clientId do not exsit');
+	    }
+
+	    _this._client = new _mqttws2.default.MQTT.Client(host, clientId);
+	    // 连接丢失
+	    _this._client.onConnectionLost = _this.onConnectionLost.bind(_this);
+	    // 接收到消息
+	    _this._client.onMessageArrived = _this.onMessageArrived.bind(_this);
+	    return _this;
+	  }
+
+	  // 连接mqtt
+
+
+	  _createClass(MQTT, [{
+	    key: 'connect',
+	    value: function connect(option) {
+	      var _this2 = this;
+
+	      return new Promise(function (resolve, reject) {
+	        _this2._client.connect({
+	          userName: option.userName,
+	          password: option.password,
+	          mqttVersion: 4,
+	          keepAliveInterval: option.keepAliveInterval || 40,
+	          onSuccess: function onSuccess() {
+	            resolve();
+	            console.log('连接成功');
+	          },
+	          onFailure: function onFailure(err) {
+	            reject(err);
+	            console.log(err);
+	          }
+	        });
+	      });
+	    }
+
+	    // 断开mqtt
+
+	  }, {
+	    key: 'disconnect',
+	    value: function disconnect() {
+	      this._client.disconnect();
+	    }
+
+	    /**
+	     * 订阅事件在订阅的时候写好事件的处理和回调
+	     * @param {Object} topic
+	     * @param {function} successEvent
+	     * @param {function} errorEvent
+	     * @returns
+	     */
+
+	  }, {
+	    key: 'subscribe',
+	    value: function subscribe(topic) {
+	      var _this3 = this;
+
+	      return new Promise(function (resolve, reject) {
+	        _this3._client.subscribe(topic, {
+	          onSuccess: function onSuccess(res) {
+	            resolve(res);
+	            console.log('\u8BA2\u9605' + topic + '\u6210\u529F');
+	          },
+	          onFailure: function onFailure(err) {
+	            reject({
+	              status: 0,
+	              err: err,
+	              msg: '\u8BA2\u9605' + topic + '\u5931\u8D25'
+	            });
+	            console.log(err);
+	            console.error('\u8BA2\u9605' + topic + '\u5931\u8D25');
+	          }
+	        });
+	      });
+	    }
+
+	    /**
+	     * MQTT处理连接丢失
+	     * @param  {Object} res 响应体
+	     */
+
+	  }, {
+	    key: 'onConnectionLost',
+	    value: function onConnectionLost(res) {
+	      this.emit('connectionLost', res);
+	    }
+
+	    /**
+	     * MQTT处理信息接收
+	     * @param  {Object} res 响应体
+	     */
+
+	  }, {
+	    key: 'onMessageArrived',
+	    value: function onMessageArrived(res) {
+	      this.emit('messageArrived', res);
+	    }
+
+	    /**
+	     * MQTT发送信息
+	     * @param  {Object} memory 发送的buffer对象
+	     * @param  {String} address mqtt地址
+	     */
+
+	  }, {
+	    key: 'sendMessage',
+	    value: function sendMessage(memory, address) {
+	      var _this4 = this;
+
+	      return new Promise(function (resolve, reject) {
+	        var message = new _mqttws2.default.MQTT.Message(memory);
+	        message.destinationName = address;
+	        message.qos = 1;
+	        _this4._client.send(message);
+	        resolve();
+	      });
+	    }
+	  }]);
+
+	  return MQTT;
+	}(_events2.default);
+
+	exports.default = MQTT;
+
+/***/ }),
+/* 74 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -12992,341 +14584,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports.default = Paho;
 
 /***/ }),
-/* 68 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	(function(){
-	  var crypt = __webpack_require__(69),
-	      utf8 = __webpack_require__(70).utf8,
-	      isBuffer = __webpack_require__(71),
-	      bin = __webpack_require__(70).bin,
-
-	  // The core
-	  md5 = function (message, options) {
-	    // Convert to byte array
-	    if (message.constructor == String)
-	      if (options && options.encoding === 'binary')
-	        message = bin.stringToBytes(message);
-	      else
-	        message = utf8.stringToBytes(message);
-	    else if (isBuffer(message))
-	      message = Array.prototype.slice.call(message, 0);
-	    else if (!Array.isArray(message))
-	      message = message.toString();
-	    // else, assume byte array already
-
-	    var m = crypt.bytesToWords(message),
-	        l = message.length * 8,
-	        a =  1732584193,
-	        b = -271733879,
-	        c = -1732584194,
-	        d =  271733878;
-
-	    // Swap endian
-	    for (var i = 0; i < m.length; i++) {
-	      m[i] = ((m[i] <<  8) | (m[i] >>> 24)) & 0x00FF00FF |
-	             ((m[i] << 24) | (m[i] >>>  8)) & 0xFF00FF00;
-	    }
-
-	    // Padding
-	    m[l >>> 5] |= 0x80 << (l % 32);
-	    m[(((l + 64) >>> 9) << 4) + 14] = l;
-
-	    // Method shortcuts
-	    var FF = md5._ff,
-	        GG = md5._gg,
-	        HH = md5._hh,
-	        II = md5._ii;
-
-	    for (var i = 0; i < m.length; i += 16) {
-
-	      var aa = a,
-	          bb = b,
-	          cc = c,
-	          dd = d;
-
-	      a = FF(a, b, c, d, m[i+ 0],  7, -680876936);
-	      d = FF(d, a, b, c, m[i+ 1], 12, -389564586);
-	      c = FF(c, d, a, b, m[i+ 2], 17,  606105819);
-	      b = FF(b, c, d, a, m[i+ 3], 22, -1044525330);
-	      a = FF(a, b, c, d, m[i+ 4],  7, -176418897);
-	      d = FF(d, a, b, c, m[i+ 5], 12,  1200080426);
-	      c = FF(c, d, a, b, m[i+ 6], 17, -1473231341);
-	      b = FF(b, c, d, a, m[i+ 7], 22, -45705983);
-	      a = FF(a, b, c, d, m[i+ 8],  7,  1770035416);
-	      d = FF(d, a, b, c, m[i+ 9], 12, -1958414417);
-	      c = FF(c, d, a, b, m[i+10], 17, -42063);
-	      b = FF(b, c, d, a, m[i+11], 22, -1990404162);
-	      a = FF(a, b, c, d, m[i+12],  7,  1804603682);
-	      d = FF(d, a, b, c, m[i+13], 12, -40341101);
-	      c = FF(c, d, a, b, m[i+14], 17, -1502002290);
-	      b = FF(b, c, d, a, m[i+15], 22,  1236535329);
-
-	      a = GG(a, b, c, d, m[i+ 1],  5, -165796510);
-	      d = GG(d, a, b, c, m[i+ 6],  9, -1069501632);
-	      c = GG(c, d, a, b, m[i+11], 14,  643717713);
-	      b = GG(b, c, d, a, m[i+ 0], 20, -373897302);
-	      a = GG(a, b, c, d, m[i+ 5],  5, -701558691);
-	      d = GG(d, a, b, c, m[i+10],  9,  38016083);
-	      c = GG(c, d, a, b, m[i+15], 14, -660478335);
-	      b = GG(b, c, d, a, m[i+ 4], 20, -405537848);
-	      a = GG(a, b, c, d, m[i+ 9],  5,  568446438);
-	      d = GG(d, a, b, c, m[i+14],  9, -1019803690);
-	      c = GG(c, d, a, b, m[i+ 3], 14, -187363961);
-	      b = GG(b, c, d, a, m[i+ 8], 20,  1163531501);
-	      a = GG(a, b, c, d, m[i+13],  5, -1444681467);
-	      d = GG(d, a, b, c, m[i+ 2],  9, -51403784);
-	      c = GG(c, d, a, b, m[i+ 7], 14,  1735328473);
-	      b = GG(b, c, d, a, m[i+12], 20, -1926607734);
-
-	      a = HH(a, b, c, d, m[i+ 5],  4, -378558);
-	      d = HH(d, a, b, c, m[i+ 8], 11, -2022574463);
-	      c = HH(c, d, a, b, m[i+11], 16,  1839030562);
-	      b = HH(b, c, d, a, m[i+14], 23, -35309556);
-	      a = HH(a, b, c, d, m[i+ 1],  4, -1530992060);
-	      d = HH(d, a, b, c, m[i+ 4], 11,  1272893353);
-	      c = HH(c, d, a, b, m[i+ 7], 16, -155497632);
-	      b = HH(b, c, d, a, m[i+10], 23, -1094730640);
-	      a = HH(a, b, c, d, m[i+13],  4,  681279174);
-	      d = HH(d, a, b, c, m[i+ 0], 11, -358537222);
-	      c = HH(c, d, a, b, m[i+ 3], 16, -722521979);
-	      b = HH(b, c, d, a, m[i+ 6], 23,  76029189);
-	      a = HH(a, b, c, d, m[i+ 9],  4, -640364487);
-	      d = HH(d, a, b, c, m[i+12], 11, -421815835);
-	      c = HH(c, d, a, b, m[i+15], 16,  530742520);
-	      b = HH(b, c, d, a, m[i+ 2], 23, -995338651);
-
-	      a = II(a, b, c, d, m[i+ 0],  6, -198630844);
-	      d = II(d, a, b, c, m[i+ 7], 10,  1126891415);
-	      c = II(c, d, a, b, m[i+14], 15, -1416354905);
-	      b = II(b, c, d, a, m[i+ 5], 21, -57434055);
-	      a = II(a, b, c, d, m[i+12],  6,  1700485571);
-	      d = II(d, a, b, c, m[i+ 3], 10, -1894986606);
-	      c = II(c, d, a, b, m[i+10], 15, -1051523);
-	      b = II(b, c, d, a, m[i+ 1], 21, -2054922799);
-	      a = II(a, b, c, d, m[i+ 8],  6,  1873313359);
-	      d = II(d, a, b, c, m[i+15], 10, -30611744);
-	      c = II(c, d, a, b, m[i+ 6], 15, -1560198380);
-	      b = II(b, c, d, a, m[i+13], 21,  1309151649);
-	      a = II(a, b, c, d, m[i+ 4],  6, -145523070);
-	      d = II(d, a, b, c, m[i+11], 10, -1120210379);
-	      c = II(c, d, a, b, m[i+ 2], 15,  718787259);
-	      b = II(b, c, d, a, m[i+ 9], 21, -343485551);
-
-	      a = (a + aa) >>> 0;
-	      b = (b + bb) >>> 0;
-	      c = (c + cc) >>> 0;
-	      d = (d + dd) >>> 0;
-	    }
-
-	    return crypt.endian([a, b, c, d]);
-	  };
-
-	  // Auxiliary functions
-	  md5._ff  = function (a, b, c, d, x, s, t) {
-	    var n = a + (b & c | ~b & d) + (x >>> 0) + t;
-	    return ((n << s) | (n >>> (32 - s))) + b;
-	  };
-	  md5._gg  = function (a, b, c, d, x, s, t) {
-	    var n = a + (b & d | c & ~d) + (x >>> 0) + t;
-	    return ((n << s) | (n >>> (32 - s))) + b;
-	  };
-	  md5._hh  = function (a, b, c, d, x, s, t) {
-	    var n = a + (b ^ c ^ d) + (x >>> 0) + t;
-	    return ((n << s) | (n >>> (32 - s))) + b;
-	  };
-	  md5._ii  = function (a, b, c, d, x, s, t) {
-	    var n = a + (c ^ (b | ~d)) + (x >>> 0) + t;
-	    return ((n << s) | (n >>> (32 - s))) + b;
-	  };
-
-	  // Package private blocksize
-	  md5._blocksize = 16;
-	  md5._digestsize = 16;
-
-	  module.exports = function (message, options) {
-	    if (message === undefined || message === null)
-	      throw new Error('Illegal argument ' + message);
-
-	    var digestbytes = crypt.wordsToBytes(md5(message, options));
-	    return options && options.asBytes ? digestbytes :
-	        options && options.asString ? bin.bytesToString(digestbytes) :
-	        crypt.bytesToHex(digestbytes);
-	  };
-
-	})();
-
-
-/***/ }),
-/* 69 */
-/***/ (function(module, exports) {
-
-	(function() {
-	  var base64map
-	      = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
-
-	  crypt = {
-	    // Bit-wise rotation left
-	    rotl: function(n, b) {
-	      return (n << b) | (n >>> (32 - b));
-	    },
-
-	    // Bit-wise rotation right
-	    rotr: function(n, b) {
-	      return (n << (32 - b)) | (n >>> b);
-	    },
-
-	    // Swap big-endian to little-endian and vice versa
-	    endian: function(n) {
-	      // If number given, swap endian
-	      if (n.constructor == Number) {
-	        return crypt.rotl(n, 8) & 0x00FF00FF | crypt.rotl(n, 24) & 0xFF00FF00;
-	      }
-
-	      // Else, assume array and swap all items
-	      for (var i = 0; i < n.length; i++)
-	        n[i] = crypt.endian(n[i]);
-	      return n;
-	    },
-
-	    // Generate an array of any length of random bytes
-	    randomBytes: function(n) {
-	      for (var bytes = []; n > 0; n--)
-	        bytes.push(Math.floor(Math.random() * 256));
-	      return bytes;
-	    },
-
-	    // Convert a byte array to big-endian 32-bit words
-	    bytesToWords: function(bytes) {
-	      for (var words = [], i = 0, b = 0; i < bytes.length; i++, b += 8)
-	        words[b >>> 5] |= bytes[i] << (24 - b % 32);
-	      return words;
-	    },
-
-	    // Convert big-endian 32-bit words to a byte array
-	    wordsToBytes: function(words) {
-	      for (var bytes = [], b = 0; b < words.length * 32; b += 8)
-	        bytes.push((words[b >>> 5] >>> (24 - b % 32)) & 0xFF);
-	      return bytes;
-	    },
-
-	    // Convert a byte array to a hex string
-	    bytesToHex: function(bytes) {
-	      for (var hex = [], i = 0; i < bytes.length; i++) {
-	        hex.push((bytes[i] >>> 4).toString(16));
-	        hex.push((bytes[i] & 0xF).toString(16));
-	      }
-	      return hex.join('');
-	    },
-
-	    // Convert a hex string to a byte array
-	    hexToBytes: function(hex) {
-	      for (var bytes = [], c = 0; c < hex.length; c += 2)
-	        bytes.push(parseInt(hex.substr(c, 2), 16));
-	      return bytes;
-	    },
-
-	    // Convert a byte array to a base-64 string
-	    bytesToBase64: function(bytes) {
-	      for (var base64 = [], i = 0; i < bytes.length; i += 3) {
-	        var triplet = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
-	        for (var j = 0; j < 4; j++)
-	          if (i * 8 + j * 6 <= bytes.length * 8)
-	            base64.push(base64map.charAt((triplet >>> 6 * (3 - j)) & 0x3F));
-	          else
-	            base64.push('=');
-	      }
-	      return base64.join('');
-	    },
-
-	    // Convert a base-64 string to a byte array
-	    base64ToBytes: function(base64) {
-	      // Remove non-base-64 characters
-	      base64 = base64.replace(/[^A-Z0-9+\/]/ig, '');
-
-	      for (var bytes = [], i = 0, imod4 = 0; i < base64.length;
-	          imod4 = ++i % 4) {
-	        if (imod4 == 0) continue;
-	        bytes.push(((base64map.indexOf(base64.charAt(i - 1))
-	            & (Math.pow(2, -2 * imod4 + 8) - 1)) << (imod4 * 2))
-	            | (base64map.indexOf(base64.charAt(i)) >>> (6 - imod4 * 2)));
-	      }
-	      return bytes;
-	    }
-	  };
-
-	  module.exports = crypt;
-	})();
-
-
-/***/ }),
-/* 70 */
-/***/ (function(module, exports) {
-
-	var charenc = {
-	  // UTF-8 encoding
-	  utf8: {
-	    // Convert a string to a byte array
-	    stringToBytes: function(str) {
-	      return charenc.bin.stringToBytes(unescape(encodeURIComponent(str)));
-	    },
-
-	    // Convert a byte array to a string
-	    bytesToString: function(bytes) {
-	      return decodeURIComponent(escape(charenc.bin.bytesToString(bytes)));
-	    }
-	  },
-
-	  // Binary encoding
-	  bin: {
-	    // Convert a string to a byte array
-	    stringToBytes: function(str) {
-	      for (var bytes = [], i = 0; i < str.length; i++)
-	        bytes.push(str.charCodeAt(i) & 0xFF);
-	      return bytes;
-	    },
-
-	    // Convert a byte array to a string
-	    bytesToString: function(bytes) {
-	      for (var str = [], i = 0; i < bytes.length; i++)
-	        str.push(String.fromCharCode(bytes[i]));
-	      return str.join('');
-	    }
-	  }
-	};
-
-	module.exports = charenc;
-
-
-/***/ }),
-/* 71 */
-/***/ (function(module, exports) {
-
-	/*!
-	 * Determine if an object is a Buffer
-	 *
-	 * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
-	 * @license  MIT
-	 */
-
-	// The _isBuffer check is for Safari 5-7 support, because it's missing
-	// Object.prototype.constructor. Remove this eventually
-	module.exports = function (obj) {
-	  return obj != null && (isBuffer(obj) || isSlowBuffer(obj) || !!obj._isBuffer)
-	}
-
-	function isBuffer (obj) {
-	  return !!obj.constructor && typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
-	}
-
-	// For Node v0.10 support. Remove this eventually.
-	function isSlowBuffer (obj) {
-	  return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
-	}
-
-
-/***/ }),
-/* 72 */
+/* 75 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -13334,757 +14592,104 @@ return /******/ (function(modules) { // webpackBootstrap
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	exports.syncDatapoints = syncDatapoints;
-	exports.getDataPointResult = getDataPointResult;
-	exports.setDataPointResult = setDataPointResult;
-	exports.notifyEvent = notifyEvent;
-	exports.systemEvent = systemEvent;
-	exports.log = log;
-	exports.getDataPoint = getDataPoint;
-	exports.setDataPointArray = setDataPointArray;
-	exports.setDeviceOffline = setDeviceOffline;
 
-	var _pad = __webpack_require__(73);
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
+
+	var _mqtt = __webpack_require__(66);
+
+	var _mqtt2 = _interopRequireDefault(_mqtt);
+
+	var _enum = __webpack_require__(1);
 
 	var _lang = __webpack_require__(60);
 
-	/**
-	 * 同步数据端点,设备上报数据端点
-	 * @param  {Array} bytes 字节数组
-	 */
-	function syncDatapoints(bytes) {
-	  // 第5位为数据端点上报标识位，占一个字节
-	  var flag = (0, _pad.pad)(bytes[4].toString(2), 8);
-	  var index = 5;
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	  // 数据端点上报标识位最高位为设备名称标识
-	  if (flag[0] === '1') {
-	    console.log('设备端点标识');
-	    // 其他字节的前两位表示设备名称长度(两个字节)
-	    // let nameLen = _bytesToInt(bytes.splice(4, 6))
-	    var nameLen = (0, _pad._bytesToInt)(bytes.slice(5, 7));
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	    index += nameLen + 2;
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	console.log(_mqtt2.default);
+
+	var V6 = function (_V) {
+	  _inherits(V6, _V);
+
+	  function V6(xsdk, option) {
+	    _classCallCheck(this, V6);
+
+	    return _possibleConstructorReturn(this, (V6.__proto__ || Object.getPrototypeOf(V6)).call(this, xsdk, option));
 	  }
 
-	  if (flag[4] === '1') {
-	    // 时间戳占8位
-	    // let timestamp = this._bytesToTimestamp(bytes.slice(index, index + 8))
-	    index += 8;
-	  }
+	  _createClass(V6, [{
+	    key: '_createDevices',
+	    value: function _createDevices(deviceList) {
+	      var _this2 = this;
 
-	  var datapointBytes = bytes.slice(index);
-	  var i = 0;
-	  var datapointArr = [];
-
-	  var _loop = function _loop() {
-	    // 1.获取数据端点的索引
-	    var datapointIndex = datapointBytes[i];
-	    var arr = [];
-	    // 2.获取两个字节，得到数据端点的类型和数据端点的长度
-	    datapointBytes.slice(i + 1, i + 3).forEach(function (item) {
-	      arr.push((0, _pad.pad)(item.toString(2), 8));
-	    });
-	    var str = arr.join('');
-	    var type = parseInt(str.slice(0, 4), 2);
-	    var len = parseInt(str.slice(4), 2);
-	    // 3.拿到数据端点内容
-	    var value = datapointBytes.slice(i + 3, i + 3 + len);
-	    switch (type) {
-	      case 9:
-	        // 字符串
-	        value = (0, _pad._bytesToString)(value);
-	        break;
-	      case 10:
-	        // 字节数组转16进制
-	        value = (0, _pad._bytesToHex)(value);
-	        break;
-	      case 7:
-	        // 浮点数
-	        value = (0, _pad._bytesToFloat)(value);
-	        break;
-	      default:
-	        // 整型
-	        value = (0, _pad._bytesToNum)(value, type);
-	    }
-
-	    datapointArr.push({
-	      index: datapointIndex,
-	      value: value,
-	      type: _pad.dataPointType[type] || type
-	    });
-	    i = i + len + 3;
-	  };
-
-	  while (i < datapointBytes.length) {
-	    _loop();
-	  }
-	  return datapointArr;
-	}
-
-	/**
-	 * 应用获取数据端点结果
-	 * @param  {Array} bytes 字节数组
-	 */
-	function getDataPointResult(bytes) {
-	  // 服务不可用，获取失败，返回不附带Datapoint Flag、Datapoint Value
-	  if (bytes[6] === 1) {
-	    return;
-	  }
-	  // 第7位为数据端点上报标识位，占一个字节
-	  var flag = (0, _pad.pad)(bytes[7].toString(2), 8);
-	  var index = 8;
-
-	  // 数据端点上报标识位最高位为设备名称标识
-	  if (flag[0] === '1') {
-	    // 其他字节的前两位表示设备名称长度(两个字节)
-	    var nameLen = (0, _pad._bytesToInt)(bytes.slice(8, 10));
-	    index += nameLen + 2;
-	  }
-
-	  // 判断是否有数据端点
-	  if (flag[1] === 0) {
-	    return [];
-	  }
-
-	  var datapointBytes = bytes.slice(index);
-	  var i = 0;
-	  var datapointArr = [];
-
-	  var _loop2 = function _loop2() {
-	    var datapointIndex = datapointBytes[i];
-	    var arr = [];
-	    datapointBytes.slice(i + 1, i + 3).forEach(function (item) {
-	      arr.push((0, _pad.pad)(item.toString(2), 8));
-	    });
-	    var str = arr.join('');
-	    var type = parseInt(str.slice(0, 4), 2);
-	    var len = parseInt(str.slice(4), 2);
-	    var value = datapointBytes.slice(i + 3, i + 3 + len);
-	    switch (type) {
-	      case 9:
-	        // 字符串
-	        value = (0, _pad._bytesToString)(value);
-	        break;
-	      case 10:
-	        // 字节数组
-	        value = (0, _pad._bytesToHex)(value);
-	        break;
-	      case 7:
-	        // 浮点数
-	        value = (0, _pad._bytesToFloat)(value);
-	        break;
-	      default:
-	        value = (0, _pad._bytesToNum)(value, type);
-	    }
-
-	    datapointArr.push({
-	      index: datapointIndex,
-	      value: value,
-	      type: _pad.dataPointType[type] || type
-	    });
-	    i = i + len + 3;
-	  };
-
-	  while (i < datapointBytes.length) {
-	    _loop2();
-	  }
-	  return datapointArr;
-	}
-
-	/**
-	 * 处理数据端点设置，应用设置数据端点
-	 * @param  {Array} bytes 字节数组
-	 */
-	function setDataPointResult(bytes) {
-	  var result = {
-	    '0': {
-	      status: 0,
-	      msg: 'datapoint set successfully'
-	    },
-	    '1': {
-	      status: 1,
-	      msg: 'datapoint Setup failed'
-	    },
-	    '2': {
-	      status: 2,
-	      msg: 'no set permissions are granted'
-	    }
-	  };
-	  return result[bytes[6]] || bytes[6];
-	}
-
-	/**
-	 * 应用通知事件
-	 * @param  {Array} bytes 字节数组
-	 */
-	function notifyEvent(bytes) {
-	  var source = {
-	    '1': 'event from server',
-	    '2': 'event from device',
-	    '3': 'event form app'
-	  };
-	  var eventSource = source[bytes[4]] || bytes[4] || '';
-	  var result = {
-	    '1': {
-	      status: 1,
-	      msg: '设备通知,数据端点变化通知'
-	    },
-	    '2': {
-	      status: 2,
-	      msg: '设备告警，数据端点变化引起的告警'
-	    },
-	    '3': {
-	      status: 3,
-	      msg: '设备分享，设备管理员发出的分享'
-	    },
-	    '4': {
-	      status: 4,
-	      msg: '消息广播推送'
-	    },
-	    '5': {
-	      status: 5,
-	      msg: '设备属性变化通知'
-	    },
-	    '6': {
-	      status: 6,
-	      msg: '设备与用户订阅关系变化通知'
-	    },
-	    '7': {
-	      status: 7,
-	      msg: '设备在线状态变化通知'
-	    },
-	    '8': {
-	      status: 8,
-	      msg: '设备在线状态告警'
-	    },
-	    '9': {
-	      status: 9,
-	      msg: '家庭消息通知，留言板消息'
-	    },
-	    '10': {
-	      status: 10,
-	      msg: '家庭邀请通知'
-	    },
-	    '11': {
-	      status: 11,
-	      msg: '家庭设备权限变化'
-	    },
-	    '12': {
-	      status: 12,
-	      msg: '家庭成员变化'
-	    },
-	    '13': {
-	      status: 13,
-	      msg: '家庭设备变化'
-	    }
-	  };
-	  var type = (0, _pad._bytesToInt)(bytes.slice(9, 11));
-	  var response = result[type] || {};
-	  response.source = eventSource;
-	  return response;
-	}
-
-	/**
-	 * 系统事件
-	 * @param  {Array} bytes 字节数组
-	 */
-	function systemEvent(bytes) {
-	  var result = {
-	    '1': {
-	      status: 1,
-	      msg: '升级指令'
-	    },
-	    '2': {
-	      status: 2,
-	      msg: '升级完成'
-	    },
-	    '3': {
-	      status: 3,
-	      msg: '请求服务器时间'
-	    },
-	    '4': {
-	      status: 4,
-	      msg: '服务器时间应答'
-	    },
-	    '5': {
-	      status: 5,
-	      msg: '强制踢下线'
-	    }
-	  };
-	  var type = (0, _pad._bytesToInt)(bytes.slice(4, 6));
-	  return result[type] || type;
-	}
-
-	/**
-	 * 写入设备日志
-	 * @param  {Array} bytes 字节数组
-	 */
-	function log(bytes) {
-	  // [0, 20, 0, 35, 0, 3, 89, 220, 55, 43, 0, 27, 54, 55, 50, 57, 56, 52, 51, 48, 53, 35, 46, 35, 70, 48, 70, 69, 54, 66, 55, 57, 50, 54, 52, 57, 35, 46, 35]
-	  // 11点左右
-	  // [0, 20, 0, 35, 0, 3, 89, 220, 55, 217, 0, 27, 54, 55, 50, 57, 56, 52, 51, 48, 53, 35, 46, 35, 70, 48, 70, 69, 54, 66, 55, 57, 50, 54, 52, 57, 35, 46, 35]
-	  // 第5到第6位为日志等级和日志内容，需要转成16进制，拼成字符串再转回10进制
-	  var arr = [];
-	  bytes.slice(4, 6).forEach(function (item) {
-	    arr.push((0, _pad.pad)(item.toString(2), 8));
-	  });
-	  var str = arr.join('');
-	  var level = parseInt(str.slice(0, 4), 2);
-	  var type = parseInt(str.slice(4), 2);
-
-	  // 第7到第14位为时间戳
-	  var timestamp = (0, _pad._bytesToTimestamp)(bytes.slice(6, 14));
-
-	  var msgArr = (0, _pad._bytesToString)(bytes.slice(16)).split('#.#');
-
-	  return {
-	    timestamp: timestamp,
-	    level: level,
-	    msg: (0, _pad.msgText)(type, msgArr)
-	  };
-	}
-
-	/**
-	 * ********************************************app发起的行为*****************************************************
-	 * */
-
-	/**
-	 * 获取数据端点
-	 * @export
-	 * @param {any} msgId
-	 * @returns {any} msgId
-	 */
-	function getDataPoint(msgId) {
-	  // 7个固定的数据长度
-	  var b = new ArrayBuffer(7);
-	  var v1 = new Uint8Array(b);
-	  var len = (0, _pad.pad)(3 .toString(2), 16);
-	  /*
-	   * arraybufferArray（用整型存储）
-	   * 数据包类型，用两个字节来存储
-	   * 0： 默认0
-	   * 1： 默认为7
-	   *
-	   * 数据包长度，就是内存的字节数，用两个字节来存储
-	   * 2：数据包高位
-	   * 3：数据包低位
-	   *
-	   * messageID
-	   * 4：message高位
-	   * 5：message低位
-	   *
-	   * 标志位
-	   * 6
-	   *
-	   * 数据包内容
-	   * 7 数据端点索引
-	   * 8  前四位代表type类型
-	   * 9：后12位代表数据内容的长度（字节）
-	   * 10 数据包内容
-	   */
-	  v1[0] = 0;
-	  v1[1] = 9;
-	  v1[2] = parseInt(len.slice(0, 8), 2);
-	  v1[3] = parseInt(len.slice(8, 16), 2);
-	  v1[4] = 0;
-	  v1[5] = msgId++;
-	  v1[6] = parseInt('10000000', 2);
-	  // 把内存发过去
-	  return {
-	    b: b,
-	    msgId: msgId
-	  };
-	}
-
-	/**
-	 * 设置数据端点数组类型
-	 * @export
-	 * @param {Array} array
-	 * @param {Number} msgId
-	 * @returns
-	 */
-	function setDataPointArray(array, msgId) {
-	  // 后端定义的数据端点类型值跟硬件定义不一样，需要做个映射
-	  var arrlen = 0;
-	  var arr = [];
-	  array.forEach(function (item) {
-	    arr.push((0, _lang.clone)(item));
-	  });
-	  arr.forEach(function (dp, index) {
-	    var datapoint = {
-	      '1': { // 布尔类型
-	        type: 0,
-	        len: 1
-	      },
-	      '2': { // 单字节(无符号)
-	        type: 0,
-	        len: 1
-	      },
-	      '3': { // 16位短整型(有符号)
-	        type: 1,
-	        len: 2
-	      },
-	      '4': { // 32位整型(有符号)
-	        type: 3,
-	        len: 4
-	      },
-	      '5': { // 浮点
-	        type: 7,
-	        len: 4
-	      },
-	      '6': { // 字符串
-	        type: 9
-	      },
-	      '7': { // 字节数组
-	        type: 10
-	      },
-	      '8': { // 16位短整型(无符号)
-	        type: 2,
-	        len: 2
-	      },
-	      '9': { // 32位整型(无符号)
-	        type: 4,
-	        len: 4
-	      }
-	    }[dp.type];
-
-	    if (dp.type === 1) {
-	      // 布尔值转换成0和1
-	      arr[index].value = dp.value ? 1 : 0;
-	    }
-
-	    var valLen = datapoint.len || dp.value.length;
-
-	    if (datapoint.type === 9) {
-	      // 字符串的长度
-	      valLen = (0, _pad._stringToBytes)(dp.value).length;
-	    } else if (datapoint.type === 10) {
-	      // 字节数组
-	      valLen = Math.ceil(dp.value.length / 2);
-	    }
-	    // 存储有用的数据（index, value, type,valLen）
-	    arr[index].valLen = valLen;
-	    arr[index].type = datapoint.type;
-	    // 获取整个端点数组的长度
-	    arrlen += valLen;
-	    arrlen += 3;
-	  });
-
-	  // 7个固定的数据端点长度，arrlen数据的长度，其中字节数组和字符串数组不确定
-	  var b = new ArrayBuffer(7 + arrlen);
-	  var v1 = new Int8Array(b);
-	  // 数据内容arrlen + 数据包实体内容3
-	  var len = (0, _pad.pad)((arrlen + 3).toString(2), 16);
-
-	  /*
-	   * arraybufferArray（用整型存储）
-	   * 数据包类型，用两个字节来存储
-	   * 0： 默认0
-	   * 1： 默认为7
-	   *
-	   * 数据包长度，就是内存的字节数，用两个字节来存储
-	   * 2：数据包低位
-	   * 3：数据包高位
-	   *
-	   * messageID
-	   * 4：message高位（一般不超过255，所有默认为0）
-	   * 5：message低位
-	   *
-	   * 标志位
-	   * 6 一般默认没有设备名称选项
-	   *
-	   * 数据端点内容
-	   * 7 数据端点索引
-	   * 8  前四位代表type类型
-	   * 9：后12位代表数据内容的长度（字节）
-	   * 10 数据包内容（n个字节）
-	   */
-	  v1[0] = 0;
-	  v1[1] = 7;
-	  v1[2] = parseInt(len.slice(0, 8), 2);
-	  v1[3] = parseInt(len.slice(8, 16), 2);
-	  v1[4] = 0;
-	  v1[5] = msgId++;
-	  v1[6] = parseInt('01100000', 2);
-	  var i = 7;
-	  arr.forEach(function (dp) {
-	    // 每位数据端点的内容以及索引，长度
-	    v1[i] = dp.index;
-	    var bin = '' + (0, _pad.pad)(dp.type.toString(2), 4) + (0, _pad.pad)(dp.valLen.toString(2), 12);
-	    v1[i + 1] = parseInt(bin.slice(0, 8), 2);
-	    v1[i + 2] = parseInt(bin.slice(8, 16), 2);
-	    // 从buffer的第十位开始创建一个新的进制存到内存（以大端字节方式写入）
-	    var v2 = new DataView(b, i + 3, dp.valLen);
-	    switch (dp.type) {
-	      case 0:
-	        v2.setUint8(0, dp.value, false);
-	        break;
-	      case 1:
-	        v2.setInt16(0, dp.value, false);
-	        break;
-	      case 2:
-	        v2.setUint16(0, dp.value, false);
-	        break;
-	      case 3:
-	        v2.setInt32(0, dp.value, false);
-	        break;
-	      case 4:
-	        v2.setUint32(0, dp.value, false);
-	        break;
-	      case 7:
-	        v2.setFloat32(0, dp.value, false);
-	        break;
-	      // 字符串
-	      case 9:
-	        var s = (0, _pad._stringToBytes)(dp.value);
-	        s.forEach(function (item, index) {
-	          v2.setUint8(index, item, false);
+	      _get(V6.prototype.__proto__ || Object.getPrototypeOf(V6.prototype), '_createDevices', this).call(this, deviceList, function (device, deviceId) {
+	        device.on(_enum.deviceEvent.PROBEDATA, function (params, cb) {
+	          // 数据端点索引params: [1, 2, 3]
+	          if (!(0, _lang.isArray)(params)) {
+	            console.error('params must be the index of the data endpoint');
+	            return;
+	          }
+	          _this2._probegetData(deviceId, params, cb);
 	        });
-	        break;
-	      // 字节数组
-	      case 10:
-	        // 一个字节存储两个字节数组的量（以16进制的方式）
-	        for (var _i = 0; _i < dp.valLen; _i++) {
-	          var str = (0, _pad.pad)(dp.value.slice(_i * 2, (_i + 1) * 2), 2);
-	          v2.setInt8(_i, parseInt(str, 16), false);
-	        }
-	        break;
-	      default:
+	      });
 	    }
-	    i = i + 3 + dp.valLen;
-	  });
-	  // 把内存发过去
-	  return {
-	    b: b,
-	    msgId: msgId
-	  };
-	}
 
-	/**
-	 * 设备下线
-	 * @export
-	 * @returns
-	 */
-	function setDeviceOffline() {
-	  var b = new ArrayBuffer(4);
-	  var v1 = new Int8Array(b);
-	  v1[0] = 0;
-	  v1[1] = 11;
-	  v1[2] = 0;
-	  v1[3] = 4;
-	  return b;
-	}
+	    /**
+	     * 订阅主题，并且做处理
+	     * 设备上报数据端点
+	     */
 
-/***/ }),
-/* 73 */
-/***/ (function(module, exports) {
+	  }, {
+	    key: '_probegetData',
+	    value: function _probegetData(deviceId, params, callback) {
+	      var _this3 = this;
 
-	'use strict';
+	      if (!this._client || !this._xsdk) {
+	        console.error('xsdk or client not init');
+	        throw new Error('xsdk not init');
+	      }
+	      var topic = _enum.subscribeType['getPrope'];
+	      if (this._devices[deviceId] && !this._devices[deviceId][topic]) {
+	        this._client.subscribe(topic + '/' + deviceId).then(function () {
+	          // 1.写进事件
+	          _this3._writeEvent(topic, deviceId, function (res) {
+	            if (callback && (0, _lang.isFunction)(callback)) {
+	              callback({ data: res, deviceId: deviceId });
+	            }
+	          });
 
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	exports.pad = pad;
-	exports._bytesToTimestamp = _bytesToTimestamp;
-	exports._bytesToInt = _bytesToInt;
-	exports._bytesToNum = _bytesToNum;
-	exports._bytesToFloat = _bytesToFloat;
-	exports._bytesToHex = _bytesToHex;
-	exports._bytesToString = _bytesToString;
-	exports._stringToBytes = _stringToBytes;
-	exports.msgText = msgText;
-	/**
-	 * 在前面补0
-	 * @param  {Number|String} num 需要补零的数字
-	 * @param  {Number} n   长度
-	 * @return {String}
-	 */
-	function pad(num, n) {
-	  var len = num.toString().length;
-	  while (len < n) {
-	    num = '0' + num;
-	    len++;
-	  }
-	  return num;
-	}
+	          // 2.订阅成功发送自动获取数据端点
+	          _this3._sendMessage({ topic: 'sendPrope', deviceId: deviceId, data: params });
+	        }, function (err) {
+	          console.error('Device[' + deviceId + '] fetch prope error');
+	          if (_this3._devices && _this3._devices[deviceId]) {
+	            _this3._devices[deviceId].emit(_enum.deviceEvent.ERROR, err);
+	          }
+	        });
+	      } else {
+	        // 覆盖事件
+	        this._writeEvent(topic, deviceId, function (res) {
+	          if (callback && (0, _lang.isFunction)(callback)) {
+	            callback({ data: res, deviceId: deviceId });
+	          }
+	        });
+	        // 订阅成功发送自动获取数据端点
+	        this._sendMessage({ topic: 'sendPrope', deviceId: deviceId, data: params });
+	      }
+	    }
+	  }]);
 
-	/**
-	 * 字节数组转时间戳，需要转成16进制，拼成字符串再转回10进制
-	 * @param  {Array}  bytes 字节数组
-	 * @param  {Boolean} ms 是否毫秒
-	 * @return {String}
-	 */
-	function _bytesToTimestamp(bytes) {
-	  var ms = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+	  return V6;
+	}(_mqtt2.default);
 
-	  // let result = _bytesToInt(bytes)
-	  // return ms ? result * 1000 : result
-	  return _bytesToInt(bytes);
-	}
-
-	/**
-	 * 字节数组转数字
-	 * @param  {Array}  bytes 字节数组
-	 * @return {String}
-	 */
-	function _bytesToInt(bytes) {
-	  var arr = [];
-	  bytes.forEach(function (item) {
-	    arr.push(pad(item.toString(2), 8));
-	  });
-	  return parseInt(arr.join(''), 2);
-	}
-
-	/**
-	 * 字节数组转数字
-	 * @param  {Array}  bytes 字节数组
-	 * @return {String}
-	 */
-	function _bytesToNum(bytes, type) {
-	  var res = 0;
-	  var ab = void 0;
-	  var view = void 0;
-	  switch (type) {
-	    case 0:
-	      // 单字节
-	      res = bytes[0];
-	      break;
-	    case 1:
-	      // 16位有符号
-	      ab = new ArrayBuffer(2);
-	      view = new Int8Array(ab);
-	      view[1] = bytes[0];
-	      view[0] = bytes[1];
-	      var int16view = new Int16Array(ab);
-	      res = int16view[0];
-	      break;
-	    case 2:
-	      // 16位无符号
-	      ab = new ArrayBuffer(2);
-	      view = new Int8Array(ab);
-	      view[1] = bytes[0];
-	      view[0] = bytes[1];
-	      var uint16view = new Uint16Array(ab);
-	      res = uint16view[0];
-	      break;
-	    case 3:
-	      // 32位有符号
-	      ab = new ArrayBuffer(4);
-	      view = new Int8Array(ab);
-	      view[3] = bytes[0];
-	      view[2] = bytes[1];
-	      view[1] = bytes[2];
-	      view[0] = bytes[3];
-	      var int32view = new Int32Array(ab);
-	      res = int32view[0];
-	      break;
-	    case 4:
-	      // 32位无符号
-	      ab = new ArrayBuffer(4);
-	      view = new Int8Array(ab);
-	      view[3] = bytes[0];
-	      view[2] = bytes[1];
-	      view[1] = bytes[2];
-	      view[0] = bytes[3];
-	      var uint32view = new Uint32Array(ab);
-	      res = uint32view[0];
-	      break;
-	    default:
-	  }
-	  return res;
-	}
-
-	/**
-	 * 字节数组转浮点数
-	 * @param  {Array}  bytes 字节数组
-	 * @return {Number}
-	 */
-	function _bytesToFloat(bytes) {
-	  var arr = [];
-	  bytes.forEach(function (byte) {
-	    arr.push(pad(byte.toString(16), 2));
-	  });
-	  var a = arr.join('').match(/.{1,2}/g).map(function (num) {
-	    return parseInt(num, 16);
-	  }).reverse();
-	  var uint8Array = new Uint8Array(a).buffer;
-	  return new Float32Array(uint8Array)[0];
-	}
-
-	/**
-	 * 字节数组转十六进制
-	 * @param  {Array}  bytes 字节数组
-	 * @return {String}
-	 */
-	function _bytesToHex(bytes) {
-	  var arr = [];
-	  bytes.forEach(function (item) {
-	    arr.push(pad(item.toString(16), 2).toUpperCase());
-	  });
-	  return arr.join('');
-	}
-
-	/**
-	 * 字节数组转字符串
-	 * @param  {Array}  bytes 字节数组
-	 * @return {String}
-	 */
-	function _bytesToString(bytes) {
-	  // return String.fromCharCode.apply(null, bytes)
-	  var encodedString = String.fromCharCode.apply(null, bytes);
-	  var decodedString = decodeURIComponent(escape(encodedString));
-	  return decodedString;
-	}
-
-	/**
-	 * 字符串转字节数组
-	 * @param  {String}  str 字符串
-	 * @return {Array}
-	 */
-	function _stringToBytes(str) {
-	  str = unescape(encodeURIComponent(str));
-	  var charList = str.split('');
-	  var uintArray = [];
-	  for (var i = 0; i < charList.length; i++) {
-	    uintArray.push(charList[i].charCodeAt(0));
-	  }
-	  return uintArray;
-	}
-
-	/**
-	 * 消息文案
-	 * @param  {[type]} type 消息类型
-	 * @param  {[type]} msg  用于填充消息占位符的数组
-	 */
-	function msgText(type, msg) {
-	  var LOG_TEMPLATES = {
-	    '1': '设备[ID:{0}, MAC:{1}]上线了, 上线IP为:{2}',
-	    '2': '设备[ID:{0}, MAC:{1}]下线了',
-	    '3': '设备[ID:{0}, MAC:{1}]发送Ping',
-	    '4': '设备[ID:{0}, MAC:{1}]接收到设置数据端点指令',
-	    '5': '设备[ID:{0}, MAC:{1}]返回了设置数据端点指令, 设置返回码为{2}',
-	    '6': '设备[ID:{0}, MAC:{1}]接收了应用{2}的订阅请求',
-	    '7': '设备[ID:{0}, MAC:{1}]返回了应用{2}的订阅, 返回码为{3}',
-	    '8': '设备[ID:{0}, MAC:{1}]上报了数据端点,内容为:{2}',
-	    '9': '设备[ID:{0}, MAC:{1}]收到了通知',
-	    '10': '设备[ID:{0}, MAC:{1}]完成了升级, 版本由{2}升级到了{3}'
-	  };
-	  var template = LOG_TEMPLATES[type];
-	  return template.replace(/\{(\d)\}/g, function (match, p1) {
-	    return msg[p1];
-	  });
-	}
-
-	var dataPointType = exports.dataPointType = {
-	  '1': 3, // 16位短整型(有符号)
-	  '2': 8, // 16位短整型(无符号)
-	  '3': 4, // 32位整型(有符号)
-	  '4': 9, // 32位整型(无符号)
-	  '7': 5, // 浮点
-	  '9': 6, // 字符串
-	  '10': 7 // 字节数组
-	};
+	exports.default = V6;
 
 /***/ })
 /******/ ])
