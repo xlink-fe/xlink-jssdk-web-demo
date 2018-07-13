@@ -175,7 +175,7 @@ var dataPoint = {} // 数据端点的值
 
 // 1.获取设备列表
 fetchDeviceList(window.localStorage.getItem('userId'), function(data) {
-    devices = data.map(item => {
+    devices = data.map(function(item){
         return {
             device_id: item.id.toString(),
             device_name: item.name,
